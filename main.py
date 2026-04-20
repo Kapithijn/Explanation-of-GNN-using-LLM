@@ -5,9 +5,10 @@ from eval_utils import evaluate_all
 from GNN_def import build_model_bundle
 from plot_utils import plot_all_predictions
 from train_utils import set_seed, train_all
+from Interpertating import get_target_node_embedding_all_models
 
 Plots = False
-
+Embeddings = True
 
 def run_experiment(
     dataset_path="transaction_dataset.csv",
@@ -56,7 +57,16 @@ def run_without_plots(**kwargs):
 if __name__ == "__main__":
     if Plots:
         print("Running experiment with plots...")
-        run_with_plots()
+        graph_data, model_bundle, histories, results = run_with_plots()
     else:
         print("Running experiment without plots...")
-        run_without_plots()
+        graph_data, model_bundle, histories, results = run_without_plots()
+    
+    if Embeddings:
+        print("Extracting target node embeddings...")
+        target_node_idx = 0 
+        embeddings = get_target_node_embedding_all_models(model_bundle, graph_data, target_node_idx)
+        for model_name, emb in embeddings.items():
+            print(f"{model_name} embedding for node {target_node_idx}: {emb}")
+    else:
+        print("Skipping embedding extraction.")

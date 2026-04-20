@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from torch_geometric.nn import GATConv
 from torch_geometric.nn import GCNConv
 from torch_geometric.nn import GINConv
-
+from torch_geometric.nn import SAGEConv
 
 class GCN(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, dropout=0.5):
@@ -12,12 +12,15 @@ class GCN(torch.nn.Module):
         self.conv2 = GCNConv(hidden_channels, out_channels)
         self.dropout = dropout
 
-    def forward(self, data):
+    def forward(self, data, return_hidden=False):
         x, edge_index = data.x, data.edge_index
         x = self.conv1(x, edge_index)
         x = F.relu(x)
         x = F.dropout(x, p=self.dropout, training=self.training)
+        hidden = x
         x = self.conv2(x, edge_index)
+        if return_hidden:
+            return x, hidden
         return x
 
 
@@ -39,12 +42,15 @@ class GAT(torch.nn.Module):
         )
         self.dropout = dropout
 
-    def forward(self, data):
+    def forward(self, data, return_hidden=False):
         x, edge_index = data.x, data.edge_index
         x = self.conv1(x, edge_index)
         x = F.elu(x)
         x = F.dropout(x, p=self.dropout, training=self.training)
+        hidden = x
         x = self.conv2(x, edge_index)
+        if return_hidden:
+            return x, hidden
         return x
 
 
@@ -67,13 +73,35 @@ class GIN(torch.nn.Module):
         )
         self.dropout = dropout
 
-    def forward(self, data):
+    def forward(self, data, return_hidden=False):
         x, edge_index = data.x, data.edge_index
         x = self.conv1(x, edge_index)
         x = F.relu(x)
         x = F.dropout(x, p=self.dropout, training=self.training)
+        hidden = x
         x = self.conv2(x, edge_index)
+        if return_hidden:
+            return x, hidden
         return x
+
+class GraphSAGE(torch.nn.Module):
+    def __init__(self, in_channels, hidden_channels, out_channels, dropout=0.5):
+        super().__init__()
+        self.conv1 = SAGEConv(in_channels, hidden_channels)
+        self.conv2 = SAGEConv(hidden_channels, out_channels)
+        self.dropout = dropout
+
+    def forward(self, data, return_hidden=False):
+        x, edge_index = data.x, data.edge_index
+        x = self.conv1(x, edge_index)
+        x = F.relu(x)
+        x = F.dropout(x, p=self.dropout, training=self.training)
+        hidden = x
+        x = self.conv2(x, edge_index)
+        if return_hidden:
+            return x, hidden
+        return x
+
 
 
 def build_model_bundle(
@@ -109,6 +137,12 @@ def build_model_bundle(
         out_channels=out_channels,
         dropout=dropout,
     ).to(device)
+    model_sage = GraphSAGE(
+        in_channels=in_channels,
+        hidden_channels=hidden_channels,
+        out_channels=out_channels,        dropout=dropout,
+    ).to(device)
+
 
     bundle = {
         "GCN": {
@@ -126,5 +160,10 @@ def build_model_bundle(
             "optimizer": torch.optim.Adam(model_gin.parameters(), lr=lr, weight_decay=weight_decay),
             "criterion": torch.nn.CrossEntropyLoss(),
         },
+        "GraphSAGE": {
+            "model": model_sage,
+            "optimizer": torch.optim.Adam(model_sage.parameters(), lr=lr, weight_decay=weight_decay),
+            "criterion": torch.nn.CrossEntropyLoss(),
+        },  
     }
     return bundle
