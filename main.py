@@ -5,10 +5,11 @@ from eval_utils import evaluate_all
 from GNN_def import build_model_bundle
 from plot_utils import plot_all_predictions
 from train_utils import set_seed, train_all
-from Interpertating import get_target_node_embedding_all_models
+from Interpertating import get_explanation, get_target_node_embedding_all_models
 
 Plots = False
-Embeddings = True
+Embeddings = False
+Explanations = True
 
 def run_experiment(
     dataset_path="transaction_dataset.csv",
@@ -70,3 +71,12 @@ if __name__ == "__main__":
             print(f"{model_name} embedding for node {target_node_idx}: {emb}")
     else:
         print("Skipping embedding extraction.")
+
+    if Explanations:
+        print("Extracting explanations...")
+        target_node_idx = 0
+        node_feat_mask, edge_mask = get_explanation(model_bundle[list(model_bundle.keys())[0]], graph_data, target_node_idx)
+        print(f"Node feature mask for node {target_node_idx}: {node_feat_mask}")
+        print(f"Edge mask for node {target_node_idx}: {edge_mask}")
+    else:
+        print("Skipping explanation extraction.")

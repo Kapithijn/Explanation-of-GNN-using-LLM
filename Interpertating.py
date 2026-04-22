@@ -1,5 +1,5 @@
 import torch
-
+from torch_geometric.explain import GNNExplainer
 
 def get_node_embeddings(model, data, layer="hidden"):
 	"""Return node representations for all nodes.
@@ -38,3 +38,10 @@ def get_target_node_embedding_all_models(model_bundle, data, target_node_idx, la
 		)
 		result[model_name] = emb.detach().cpu()
 	return result
+
+def get_explanation(model, data, target_node_idx, layer="hidden"):
+	"""Return an explanation for the target node."""
+	explainer = GNNExplainer(model, epochs=200)
+	# Node mask shows importance of each feature for the target node. Edge mask shows importance of each edge for the target node.
+	node_feat_mask, edge_mask = explainer.explain_node(target_node_idx, data)
+	return node_feat_mask, edge_mask
