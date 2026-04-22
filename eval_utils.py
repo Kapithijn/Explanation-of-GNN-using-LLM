@@ -11,7 +11,10 @@ def evaluate(model, data, model_name="Model"):
         pred = test_logits.argmax(dim=1)
         correct = (pred == test_target).sum().item()
         total = test_target.numel()
-        accuracy = correct / total if total > 0 else 0.0
+        if total > 0:
+            accuracy = correct / total
+        else:
+            accuracy = 0.0
 
         result = {
             "model": model_name,

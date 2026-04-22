@@ -12,8 +12,10 @@ class GCN(torch.nn.Module):
         self.conv2 = GCNConv(hidden_channels, out_channels)
         self.dropout = dropout
 
-    def forward(self, data, return_hidden=False):
-        x, edge_index = data.x, data.edge_index
+    def forward(self, x, edge_index=None, return_hidden=False):
+        if edge_index is None:
+            data = x
+            x, edge_index = data.x, data.edge_index
         x = self.conv1(x, edge_index)
         x = F.relu(x)
         x = F.dropout(x, p=self.dropout, training=self.training)
@@ -42,8 +44,10 @@ class GAT(torch.nn.Module):
         )
         self.dropout = dropout
 
-    def forward(self, data, return_hidden=False):
-        x, edge_index = data.x, data.edge_index
+    def forward(self, x, edge_index=None, return_hidden=False):
+        if edge_index is None:
+            data = x
+            x, edge_index = data.x, data.edge_index
         x = self.conv1(x, edge_index)
         x = F.elu(x)
         x = F.dropout(x, p=self.dropout, training=self.training)
@@ -73,8 +77,10 @@ class GIN(torch.nn.Module):
         )
         self.dropout = dropout
 
-    def forward(self, data, return_hidden=False):
-        x, edge_index = data.x, data.edge_index
+    def forward(self, x, edge_index=None, return_hidden=False):
+        if edge_index is None:
+            data = x
+            x, edge_index = data.x, data.edge_index
         x = self.conv1(x, edge_index)
         x = F.relu(x)
         x = F.dropout(x, p=self.dropout, training=self.training)
@@ -91,8 +97,10 @@ class GraphSAGE(torch.nn.Module):
         self.conv2 = SAGEConv(hidden_channels, out_channels)
         self.dropout = dropout
 
-    def forward(self, data, return_hidden=False):
-        x, edge_index = data.x, data.edge_index
+    def forward(self, x, edge_index=None, return_hidden=False):
+        if edge_index is None:
+            data = x
+            x, edge_index = data.x, data.edge_index
         x = self.conv1(x, edge_index)
         x = F.relu(x)
         x = F.dropout(x, p=self.dropout, training=self.training)
@@ -114,7 +122,6 @@ def build_model_bundle(
     weight_decay=5e-4,
     device=None,
 ):
-    """Builds models + optimizers + loss so notebook calls stay compact."""
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

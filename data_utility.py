@@ -26,6 +26,7 @@ def preprocess_data(data, imputer=None, scaler=None, test_size=0.2, random_state
 
     num_df = feature_df.select_dtypes(include="number")
 
+    # Handle case with no numeric features by creating a column of zeros.
     if num_df.shape[1] == 0:
         X = torch.zeros((len(data), 1), dtype=torch.float)
         y_array = data[target_col].to_numpy()
