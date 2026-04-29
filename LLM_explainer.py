@@ -4,7 +4,7 @@ import torch
 from Interpertating import get_explanation
 
 
-def prompt_model_for_explanation(data, prompt, target_node_idx=None, layer="hidden", llm_model="Qwen/Qwen2.5-0.5B-Instruct", tokenizer=None, model=None, device=None, explanations= None):
+def prompt_model_for_explanation(data, prompt, target_node_idx=None, layer="hidden", llm_model="Qwen/Qwen2.5-0.5B-Instruct", tokenizer=None, model=None, device=None, explanations= None, embeddings=None):
     """
     This function prompts a language model to generate an explanation for a given graph data input.
     It takes in the graph data, target node index, and layer information, and constructs a prompt to query the language model. The response from the model is returned as an explanation.
@@ -29,6 +29,10 @@ def prompt_model_for_explanation(data, prompt, target_node_idx=None, layer="hidd
         meta.append(f"Target node index: {target_node_idx}")
     if layer:
         meta.append(f"Layer: {layer}")
+    if explanations is not None:
+        meta.append(f"Explanations from explainer models: {explanations}")
+    if embeddings is not None:
+        meta.append(f"Node embeddings: {embeddings}")
 
     prompt_content = prompt + "\n\n"
     if meta:
@@ -60,7 +64,7 @@ def prompt_model_for_explanation(data, prompt, target_node_idx=None, layer="hidd
     return response
 
 
-def prompt_model_for_explanation_all_models(model_bundle, data, target_node_idx=None, layer="hidden", explanations_from_explainermodels=None, **kwargs):
+def prompt_model_for_explanation_all_models(model_bundle, data, target_node_idx=None, layer="hidden", explanations_from_explainermodels=None,embeddings = None, **kwargs):
     """
     This function generates explanations for all models in the model bundle by prompting a language model.
     It iterates through each model, retrieves the relevant graph data and metadata, and constructs prompts to query the language model for explanations. The responses are collected and returned in a dictionary format.
@@ -74,6 +78,7 @@ def prompt_model_for_explanation_all_models(model_bundle, data, target_node_idx=
             layer=layer,
             prompt=f"Explain the prediction of {model_name}:",
             explanations=explanations_from_explainermodels.get(model_name) if explanations_from_explainermodels else None,
+            embeddings=embeddings.get(model_name) if embeddings else None,
             **kwargs
         )
         explanations[model_name] = explanation

@@ -8,11 +8,11 @@ from train_utils import set_seed, train_all
 from Interpertating import get_explanation_all_models, get_target_node_embedding_all_models
 from LLM_explainer import prompt_model_for_explanation, prompt_model_for_explanation_all_models 
 
-Plots = False
+Plots = True
 Embeddings = False
 Explanations = False
 Llm_explainer = True
-turne_on_models = ["GCN"]  # Specify which models to run ["GCN", "GAT", "GIN", "GraphSAGE"]  are all the models
+turne_on_models = ["GCN", "GAT", "GIN", "GraphSAGE"]  # Specify which models to run  ["GCN", "GAT", "GIN", "GraphSAGE"] are all the models
 
 
 
@@ -92,8 +92,9 @@ if __name__ == "__main__":
     if Llm_explainer:
         target_node_idx = 0
         explanations = get_explanation_all_models(model_bundle, graph_data, target_node_idx)
+        embeddings = get_target_node_embedding_all_models(model_bundle, graph_data, target_node_idx)
         print("Generating LLM explanations...")
-        llm_explanations = prompt_model_for_explanation_all_models(model_bundle, graph_data, target_node_idx=target_node_idx, explanations=explanations)
+        llm_explanations = prompt_model_for_explanation_all_models(model_bundle, graph_data, target_node_idx=target_node_idx, explanations=explanations, embeddings=embeddings)
         print("LLM Explanations:")
         for model_name, exp in llm_explanations.items():
             print(f"{model_name}: {exp}")
