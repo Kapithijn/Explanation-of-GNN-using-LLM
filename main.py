@@ -6,10 +6,15 @@ from GNN_def import build_model_bundle
 from plot_utils import plot_all_predictions
 from train_utils import set_seed, train_all
 from Interpertating import get_explanation_all_models, get_target_node_embedding_all_models
+from LLM_explainer import prompt_model_for_explanation, prompt_model_for_explanation_all_models 
 
 Plots = False
 Embeddings = False
-Explanations = True
+Explanations = False
+Llm_explainer = True
+turne_on_models = ["GCN"]  # Specify which models to run ["GCN", "GAT", "GIN", "GraphSAGE"]  are all the models
+
+
 
 def run_experiment(
     dataset_path="transaction_dataset.csv",
@@ -38,7 +43,7 @@ def run_experiment(
         dropout=dropout,
         lr=lr,
         weight_decay=weight_decay,
-        device=device,
+        device=device, models_to_include=turne_on_models
     )
 
     histories = train_all(model_bundle, graph_data, epochs=epochs, print_every=print_every)
@@ -54,6 +59,8 @@ def run_with_plots(**kwargs):
 
 def run_without_plots(**kwargs):
     return run_experiment(**kwargs)
+
+
 
 if __name__ == "__main__":
     if Plots:
@@ -81,3 +88,14 @@ if __name__ == "__main__":
             print(f"{model_name} - Edge mask for node {target_node_idx}: {exp['edge_mask']}")
     else:
         print("Skipping explanation extraction.")
+    
+    if Llm_explainer:
+        target_node_idx = 0
+        explanations = get_explanation_all_models(model_bundle, graph_data, target_node_idx)
+        print("Generating LLM explanations...")
+        llm_explanations = prompt_model_for_explanation_all_models(model_bundle, graph_data, target_node_idx=target_node_idx, explanations=explanations)
+        print("LLM Explanations:")
+        for model_name, exp in llm_explanations.items():
+            print(f"{model_name}: {exp}")
+    else:
+        print("Skipping LLM explanation generation.")
