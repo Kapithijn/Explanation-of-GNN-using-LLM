@@ -1,3 +1,4 @@
+from importlib.resources import path
 import os
 from torch_geometric.data import Data
 import pandas as pd
@@ -6,6 +7,23 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
+from torch_geometric.datasets import EllipticBitcoinDataset, EllipticBitcoinTemporalDataset, DGraphFin
+
+def Load_all_data(chosen_dataset):
+    if chosen_dataset == "transaction_dataset.csv":
+        path="transaction_dataset.csv", imputer=None, scaler=None
+    elif chosen_dataset == "elliptic_dataset":
+        Data = EllipticBitcoinDataset(root="data/elliptic_dataset")
+        path = Data[0]
+    elif chosen_dataset == "elliptic_temporal_dataset":
+        Data = EllipticBitcoinTemporalDataset(root="data/elliptic_temporal_dataset")
+        path = Data[0]
+    elif chosen_dataset == "dgraphfin_dataset":
+        Data = DGraphFin(root="data/dgraphfin_dataset")
+        path = Data[0]
+    else:        
+        raise ValueError(f"Unknown dataset choice: {chosen_dataset}")
+    return load_and_preprocess_data(path)   
 
 def load_data(path="transaction_dataset.csv"):
     """Loads the transaction dataset from a CSV file."""
