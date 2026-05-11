@@ -1,3 +1,4 @@
+---
 Pipeline:
     main.py
         Explanation:
@@ -28,8 +29,6 @@ Pipeline:
             class GAT
             class GIN
             class GraphSAGE
-            class TemporalGNN
-            class MultiEdgeGNN
             build_model_bundle(config: dict) — instantiates all models with shared config
     Train.py
         Explanation:
@@ -52,23 +51,21 @@ Pipeline:
             get_subgraph(data, target_node, num_hops) — extracts the k-hop subgraph around the target node
             extract_all(model, data, target_node) — runs all extractions and returns a structured bundle
 
-    Tokenizer.py
+    LLM_Module.py
         Explanation:
-            Converts the extracted GNN outputs (explanation masks, embeddings, subgraph structure) into text or token sequences suitable as LLM input. The GNN prediction is excluded here and used only for evaluation.
-        Functions:
-            tokenize_explanation(explanation_mask) — converts edge/feature importance scores to text description
-            tokenize_embedding(embedding) — serializes node embedding vector into a readable format
-            tokenize_subgraph(subgraph) — describes subgraph topology and node features in text
-            build_prompt(tokenized_explanation, tokenized_embedding, tokenized_subgraph, template) — assembles the final LLM prompt from tokenized components
-
-    LLM_Inference.py
-        Explanation:
-            Sends the constructed prompts to each LLM and collects their predicted class for the target node.
-        Functions:
-            load_llm(model_name: str) — loads or connects to a specified LLM
-            query_llm(llm, prompt: str) — sends a prompt and returns the raw response
-            parse_prediction(response: str) — extracts the predicted class label from the LLM response
-            run_inference_all(llms, prompts) — runs inference across all LLM–prompt combinations
+            Builds textual prompts from GNN outputs (explanation masks, embeddings, subgraph structure) and sends them to local HuggingFace LLMs (Qwen, LLaMA). Uses HuggingFace's built-in AutoTokenizer and AutoModelForCausalLM internally for tokenization and generation. The GNN prediction is excluded from prompts and reserved for evaluation only.
+        Functions (semantic formatting / prompt building):
+            format_explanation(explanation_mask) — converts edge/feature importance scores into a human-readable explanation text
+            format_embedding(embedding, max_length: int | None = None) — serializes the node embedding vector into a readable string; applies PCA reduction via reduce_embedding() if max_length is exceeded
+            reduce_embedding(embedding, n_components: int) — applies PCA to compress the embedding before serialization
+            format_subgraph(subgraph) — describes subgraph topology and node features in text
+            build_prompt(explanation_text, embedding_text, subgraph_text, template: str) — assembles the final LLM prompt from formatted components and a prompt template
+            Functions (HuggingFace LLM handling):
+            load_llm(model_name: str, device: str) — loads a HuggingFace AutoTokenizer and AutoModelForCausalLM from local path or Hub and moves the model to the specified device
+            generate_response(model, tokenizer, prompt: str, device: str, **gen_kwargs) — tokenizes the prompt, runs model.generate(), and decodes the output into a response string
+            parse_prediction(response: str) — extracts the predicted class label from the generated response
+            get_prediction_for_target(model, tokenizer, prompt: str, device: str, **gen_kwargs) — convenience wrapper: prompt → response → parsed class label
+            run_inference_all(model_names: list, prompts: list, device: str) — iterates over all LLMs; for each: loads the model, runs all prompts via get_prediction_for_target(), collects results, then deletes the model and clears GPU cache before loading the next
 
     Evaluation.py
         Explanation:
