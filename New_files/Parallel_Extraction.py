@@ -1,0 +1,94 @@
+import json
+import torch
+
+_DATA_CACHE = {}
+_MODEL_CACHE = {}
+
+
+
+def _stable_kwargs_key(kwargs):
+	"""Create a stable cache key for dataset kwargs."""
+	if not kwargs:
+		return "{}"
+	try:
+		return json.dumps(kwargs, sort_keys=True, default=str)
+	except Exception:
+		return str(sorted((str(k), str(v)) for k, v in kwargs.items()))
+
+
+def _load_data_cached(dataset_name, dataset_kwargs):
+	"""Load and preprocess the dataset once per worker process."""
+	from Data_File import load_dataset, preprocess
+
+	key = f"{dataset_name}|{_stable_kwargs_key(dataset_kwargs)}"
+	cached = _DATA_CACHE.get(key)
+	if cached is not None:
+		return cached
+
+	kwargs = dataset_kwargs or {}
+	data = load_dataset(dataset_name, **kwargs)
+	data = preprocess(data)
+	_DATA_CACHE[key] = data
+	return data
+
+
+def _load_model_cached(model_name, model_config, state_dict_path):
+	"""Build the model architecture and load weights once per worker process."""
+	from GNN_Definition import build_model_bundle
+
+	key = (model_name, state_dict_path)
+	cached = _MODEL_CACHE.get(key)
+	if cached is not None:
+		return cached
+
+	bundle = build_model_bundle(dict(model_config))
+	if model_name not in bundle:
+		available = ", ".join(bundle.keys())
+		raise KeyError(f"Unknown model '{model_name}'. Available: {available}")
+
+	model = bundle[model_name]
+	state = torch.load(state_dict_path, map_location="cpu")
+	model.load_state_dict(state)
+	model.eval()
+	_MODEL_CACHE[key] = model
+	return model
+
+
+def extract_one(
+	dataset_name,
+	dataset_kwargs,
+	model_name,
+	model_config,
+	state_dict_path,
+	node_id,
+	num_hops,
+	torch_num_threads=None,
+	seed=None,
+):
+	"""Run extraction for a single (dataset, model, node) tuple.
+
+	Designed to be executed inside a worker process.
+	"""
+	if torch_num_threads is not None:
+		torch.set_num_threads(int(torch_num_threads))
+		try:
+			torch.set_num_interop_threads(int(torch_num_threads))
+		except Exception:
+			pass
+
+	if seed is not None:
+		# Make per-node randomness stable but distinct across nodes.
+		torch.manual_seed(int(seed) + int(node_id))
+
+	data = _load_data_cached(dataset_name, dataset_kwargs)
+	model = _load_model_cached(model_name, model_config, state_dict_path)
+
+	from Extracion import extract_all
+
+	bundle = extract_all(model, data, int(node_id), num_hops=int(num_hops))
+	return {
+		"dataset": dataset_name,
+		"model": model_name,
+		"target_node": int(node_id),
+		"bundle": bundle,
+	}

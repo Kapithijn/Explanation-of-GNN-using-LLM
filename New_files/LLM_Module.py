@@ -2,7 +2,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 import numpy as np
 from sklearn.decomposition import PCA
-from typing import Tuple, Dict, List, Optional
+from typing import Tuple, Dict, List, Optional, Any
 import re
 Top_K = 5  # Number of top edges/features to include in explanations
 if torch.cuda.is_available():
@@ -116,7 +116,7 @@ def build_prompt(explanation_text: str, embedding_text: str, subgraph_text: str,
         str: Complete prompt ready for LLM inference
     """
     prompt = template.format(explanation=explanation_text, embedding=embedding_text, subgraph=subgraph_text)
-    prompt += "\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index."
+    prompt += "\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit." 
 
     return prompt
 
@@ -139,7 +139,7 @@ def load_llm(model_name: str, device: str):
 
     dtype = torch.float16 if device == "cuda" else torch.float32
     try:
-        model = AutoModelForCausalLM.from_pretrained(model_name, dtype=dtype)
+        model: Any = AutoModelForCausalLM.from_pretrained(model_name, dtype=dtype)  # type: ignore[call-arg]
     except TypeError:
         model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=dtype)
     model.to(device)
@@ -250,13 +250,38 @@ def run_inference_all(model_names: List[str], prompts: List[str], device: str, *
         Dict[str, List]: Results organized by model name, e.g.,
                         {"Qwen/Qwen-7B": [pred1, pred2, ...], "meta-llama/Llama-2-7b": [...]}
     """
+    print(f"Running inference on device: {device}")
+
+    try:
+        from tqdm.auto import tqdm  # type: ignore
+    except Exception:
+        tqdm = None
+
     results = {}
+    total = int(len(model_names) * len(prompts))
+    progress_bar = None
+    if tqdm is not None and total > 0:
+        progress_bar = tqdm(total=total, desc="LLM inference", unit="prompt")
+
+    completed = 0
     for model_name in model_names:
         tokenizer, model = load_llm(model_name, device)
         predictions = []
         for prompt in prompts:
             pred = get_prediction_for_target(model, tokenizer, prompt, device, **gen_kwargs)
             predictions.append(pred)
+
+            completed += 1
+            if progress_bar is not None:
+                progress_bar.set_postfix_str(model_name)
+                progress_bar.update(1)
+            else:
+                # Fallback progress indicator (prints ~20 times max).
+                if total > 0:
+                    step = max(1, total // 20)
+                    if completed == 1 or completed % step == 0 or completed == total:
+                        pct = 100.0 * completed / total
+                        print(f"LLM inference progress: {completed}/{total} ({pct:.1f}%)")
         results[model_name] = predictions
         del model
         del tokenizer
@@ -264,5 +289,7 @@ def run_inference_all(model_names: List[str], prompts: List[str], device: str, *
             torch.cuda.empty_cache()
         elif device == "mps":
             torch.mps.empty_cache()
+    if progress_bar is not None:
+        progress_bar.close()
     return results
 

@@ -43,7 +43,7 @@ def get_explanation(model, data, target_node):
     """
     explainer = Explainer(
         model=model,
-        algorithm=GNNExplainer(epochs=200),
+        algorithm=GNNExplainer(epochs=50),
         explanation_type="model",
         node_mask_type="attributes",
         edge_mask_type="object",

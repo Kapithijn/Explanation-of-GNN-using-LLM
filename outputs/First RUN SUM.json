@@ -1,6 +1,6 @@
 {
   "GCN|elliptic|Qwen/Qwen2.5-0.5B-Instruct": {
-    "accuracy": 1.0,
-    "count": 1
+    "accuracy": 0.18,
+    "count": 50
   }
 }

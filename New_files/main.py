@@ -23,7 +23,9 @@ from GNN_Definition import build_model_bundle
 from Train import train_all
 from LLM_Module import format_explanation, format_embedding, build_prompt, run_inference_all
 from Evalueation import aggregate_results, save_results
-
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import multiprocessing as mp
+from Parallel_Extraction import extract_one
 
 def parse_args(argv=None):
 	"""Parse CLI arguments for running the pipeline."""
@@ -73,6 +75,12 @@ def parse_args(argv=None):
 	parser.add_argument("--output-dir", type=str, default=None, help="Override output directory for artifacts/results.")
 	parser.add_argument("--device", choices=["auto", "cpu", "cuda", "mps"], default="auto", help="Device selection.")
 	parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility.")
+	parser.add_argument(
+		"--extract-workers",
+		type=int,
+		default=None,
+		help="Number of worker processes for extraction (1 = sequential).",
+	)
 
 	# Stage flags.
 	parser.add_argument("--skip-data", action="store_true", help="Skip dataset loading/preprocessing stage.")
@@ -120,9 +128,10 @@ def default_config():
 		"output_dir": "outputs",
 		"datasets": ["elliptic"],
 		"models": ["GCN"],
-		"llms": ["Qwen/Qwen2.5-0.5B-Instruct"],
-		"target_nodes": [],
-		"num_target_nodes": 50,
+		"llms": ["Qwen/Qwen3.5-4B"],
+		"extract_workers": 1,
+		"target_nodes": [],	
+		"num_target_nodes": 1,
 		"target_node_pool": "test",
 		"target_node_sampling": "random",
 		"num_hops": 2,
@@ -172,6 +181,8 @@ def apply_cli_overrides(config, args):
 		config["num_hops"] = int(args.num_hops)
 	if args.seed is not None:
 		config["seed"] = int(args.seed)
+	if getattr(args, "extract_workers", None) is not None and args.extract_workers is not None:
+		config["extract_workers"] = max(1, int(args.extract_workers))
 	if args.device is not None:
 		config["device"] = args.device
 	return config
@@ -334,7 +345,14 @@ def run_extraction_stage(config, model_bundle, datasets):
 
 	num_hops = int(config.get("num_hops", 2))
 
-	records = []
+	try:
+		from tqdm.auto import tqdm  # type: ignore
+	except Exception:
+		tqdm = None
+
+	# Resolve and freeze the target node lists once per dataset (important when sampling is random).
+	target_nodes_by_dataset = {}
+	total = 0
 	for dataset_name, data in datasets.items():
 		target_nodes = _select_target_nodes(config, data)
 		if not target_nodes:
@@ -342,17 +360,128 @@ def run_extraction_stage(config, model_bundle, datasets):
 				"No target nodes specified. Set config['target_nodes'], pass --target-nodes, "
 				"or use --num-target-nodes with an appropriate pool (e.g., --target-node-pool test)."
 			)
+		target_nodes_by_dataset[dataset_name] = [int(v) for v in target_nodes]
+		total += len(target_nodes_by_dataset[dataset_name]) * len(model_bundle)
+
+	if total == 0:
+		return []
+
+	print(
+		f"Starting extraction for {total} node(s) "
+		f"({len(datasets)} dataset(s) × {len(model_bundle)} model(s))."
+	)
+	print("Note: this stage can be slow because GNNExplainer runs per target node.")
+
+	workers = int(config.get("extract_workers", 1) or 1)
+	if workers < 1:
+		workers = 1
+	if workers > 1:
+		print(f"Parallel extraction enabled: {workers} worker process(es).")
+		print("Note: each worker loads its own copy of the graph and model (higher RAM use).")
+
+	progress_bar = None
+	if tqdm is not None and total > 0:
+		progress_bar = tqdm(total=total, desc="Extraction", unit="node")
+
+	completed = 0
+	records = []
+	if workers == 1:
+		for dataset_name, data in datasets.items():
+			target_nodes = target_nodes_by_dataset[dataset_name]
+			for model_name, model in model_bundle.items():
+				for node_id in target_nodes:
+					if progress_bar is not None:
+						progress_bar.set_postfix_str(f"{model_name}|{dataset_name}|node={node_id}")
+						progress_bar.refresh()
+					else:
+						# Fallback progress indicator (prints ~20 times max).
+						step = max(1, total // 20)
+						if completed == 0 or completed % step == 0:
+							pct = 100.0 * completed / total
+							print(f"Extraction progress: {completed}/{total} ({pct:.1f}%)")
+
+					bundle = extract_all(model, data, node_id, num_hops=num_hops)
+					records.append(
+						{
+							"dataset": dataset_name,
+							"model": model_name,
+							"target_node": int(node_id),
+							"bundle": bundle,
+						}
+					)
+
+					completed += 1
+					if progress_bar is not None:
+						progress_bar.update(1)
+	else:
+
+
+		output_dir = Path(str(config.get("output_dir", "outputs")))
+		tmp_dir = output_dir / "_tmp_parallel_extraction"
+		tmp_dir.mkdir(parents=True, exist_ok=True)
+
+		# Save trained weights so each worker can load them without pickling the whole model.
+		state_paths = {}
 		for model_name, model in model_bundle.items():
-			for node_id in target_nodes:
-				bundle = extract_all(model, data, node_id, num_hops=num_hops)
-				records.append(
-					{
-						"dataset": dataset_name,
-						"model": model_name,
-						"target_node": int(node_id),
-						"bundle": bundle,
-					}
-				)
+			path = tmp_dir / f"{model_name}.pt"
+			torch.save(model.state_dict(), path)
+			state_paths[model_name] = str(path)
+
+		model_config = {
+			"in_channels": int(config["in_channels"]),
+			"hidden_channels": int(config.get("hidden_channels", 64)),
+			"out_channels": int(config["out_channels"]),
+			"dropout": float(config.get("dropout", 0.5)),
+			"gat_heads": int(config.get("gat_heads", 4)),
+		}
+
+		dataset_kwargs_all = config.get("dataset_kwargs", {})
+		if not isinstance(dataset_kwargs_all, dict):
+			dataset_kwargs_all = {}
+
+		seed = config.get("seed")
+		per_worker_threads = 1
+
+		futures = []
+		ctx = mp.get_context("spawn")
+		with ProcessPoolExecutor(max_workers=workers, mp_context=ctx) as executor:
+			for dataset_name in datasets.keys():
+				dataset_kwargs = dataset_kwargs_all.get(dataset_name, {})
+				for model_name in model_bundle.keys():
+					state_dict_path = state_paths[model_name]
+					for node_id in target_nodes_by_dataset[dataset_name]:
+						futures.append(
+							executor.submit(
+								extract_one,
+								dataset_name,
+								dataset_kwargs,
+								model_name,
+								model_config,
+								state_dict_path,
+								int(node_id),
+								int(num_hops),
+								torch_num_threads=per_worker_threads,
+								seed=int(seed) if seed is not None else None,
+							)
+						)
+
+			for future in as_completed(futures):
+				record = future.result()
+				records.append(record)
+				completed += 1
+				if progress_bar is not None:
+					progress_bar.set_postfix_str(
+						f"{record.get('model')}|{record.get('dataset')}|node={record.get('target_node')}"
+					)
+					progress_bar.update(1)
+				else:
+					step = max(1, total // 20)
+					if completed == 1 or completed % step == 0 or completed == total:
+						pct = 100.0 * completed / total
+						print(f"Extraction progress: {completed}/{total} ({pct:.1f}%)")
+
+	if progress_bar is not None:
+		progress_bar.close()
 
 	return records
 
