@@ -1,0 +1,10 @@
+{
+  "GCN|elliptic|Qwen/Qwen3.5-2B": {
+    "accuracy": 0.02,
+    "count": 50
+  },
+  "GAT|elliptic|Qwen/Qwen3.5-2B": {
+    "accuracy": 0.82,
+    "count": 50
+  }
+}

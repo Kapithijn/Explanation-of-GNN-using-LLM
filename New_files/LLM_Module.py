@@ -122,26 +122,59 @@ def build_prompt(explanation_text: str, embedding_text: str, subgraph_text: str,
 
 
 
-def load_llm(model_name: str, device: str):
-    """
-    Load a HuggingFace LLM (AutoTokenizer and AutoModelForCausalLM).
-    
+def load_llm(
+    model_name: str,
+    device: str,
+    cache_dir: Optional[str] = None,
+    local_files_only: bool = False,
+):
+    """Load a HuggingFace LLM (AutoTokenizer and AutoModelForCausalLM).
+
+    Notes:
+        - Downloading/caching avoids repeated network downloads, but the model must
+          still be loaded into RAM (and possibly GPU/MPS memory) for inference.
+        - On macOS/MPS, loading a multi-billion-parameter model in float32 can easily
+          exceed available unified memory. We default to float16 on MPS/CUDA.
+
     Args:
-        model_name: Model name or path (e.g., "Qwen/Qwen-7B" or local path)
-        device: Device to move model to (e.g., "cuda" or "cpu")
-    
+        model_name: Model name or local path.
+        device: "cuda" | "mps" | "cpu".
+        cache_dir: Optional Hugging Face cache directory.
+        local_files_only: If True, never hit the network (requires files in cache).
+
     Returns:
-        Tuple[AutoTokenizer, AutoModelForCausalLM]: Loaded tokenizer and model
+        (tokenizer, model)
     """
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+    tokenizer_kwargs: Dict[str, Any] = {}
+    if cache_dir is not None:
+        tokenizer_kwargs["cache_dir"] = cache_dir
+    if local_files_only:
+        tokenizer_kwargs["local_files_only"] = True
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name, **tokenizer_kwargs)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    dtype = torch.float16 if device == "cuda" else torch.float32
+    dtype = torch.float16 if device in {"cuda", "mps"} else torch.float32
+
+    model_kwargs: Dict[str, Any] = {"torch_dtype": dtype}
+    if cache_dir is not None:
+        model_kwargs["cache_dir"] = cache_dir
+    if local_files_only:
+        model_kwargs["local_files_only"] = True
+
+    # Try low-memory loading when available; fall back to standard loading if the
+    # current transformers/accelerate combo doesn't support it.
     try:
-        model: Any = AutoModelForCausalLM.from_pretrained(model_name, dtype=dtype)  # type: ignore[call-arg]
-    except TypeError:
-        model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=dtype)
+        model: Any = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            low_cpu_mem_usage=True,
+            **model_kwargs,
+        )
+    except Exception:
+        model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
+
     model.to(device)
     model.eval()
     return tokenizer, model

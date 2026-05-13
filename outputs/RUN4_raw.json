@@ -1,0 +1,452 @@
+[
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 153592,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 175451 with importance 0.6353\n - Index 175072 with importance 0.6325\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [1.0161, 0.0000, 2.1258, 0.0000, 0.0000, 0.0000, 1.6829, 1.3737, 2.4715, 2.9884, 0.0000, 6.5339, 0.4889, 2.6402, 0.7518, 0.3544, 2.4054, 4.4613, 0.0000, 0.0000, 0.0000, 0.6322, 3.2120, 0.0000, 0.0000, 1.5115, 5.9073, 2.1173, 0.0000, 0.9958, 0.0000, 4.7502, 3.7603, 0.0000, 0.0000, 3.9600, 0.0000, 0.0000, 3.2168, 2.2485, 0.0000, 0.0000, 1.8488, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.6833, 0.0000, 0.0000, 2.3865, 1.4622, 0.0000, 0.0000, 0.9571, 0.5928, 2.9226, 0.0000, 2.5242, 4.5571, 0.0000, 0.0898]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 189169,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 216640 with importance 0.6406\n - Index 215238 with importance 0.6316\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0000, 0.0000, 1.0695, 0.6946, 3.9212, 0.0000, 0.7964, 0.0000, 0.0000, 0.9177, 0.0000, 0.0000, 1.0446, 0.0000, 0.0000, 0.0000, 0.0000, 1.6176, 0.9414, 0.0000, 1.0053, 1.3096, 0.8508, 0.4855, 0.0000, 3.8310, 0.0000, 0.8001, 0.0000, 0.0000, 0.0974, 0.0000, 0.6036, 0.0000, 0.0000, 1.9130, 0.0000, 0.0000, 0.0000, 0.1829, 0.0000, 1.9464, 0.0000, 2.3758, 2.4367, 2.8755, 0.1555, 1.3919, 0.2906, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.8147, 0.0000, 0.0000, 0.4656, 0.0000, 0.0000, 0.7784, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 186209,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 213035 with importance 0.6333\n - Index 217869 with importance 0.6326\n - Index 218229 with importance 0.6315\n - Index 216195 with importance 0.6312\n - Index 215141 with importance 0.6309\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.5214, 1.9537, 0.0000, 0.0000, 3.3991, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.6771, 0.5187, 0.8056, 1.8430, 0.0000, 1.0737, 0.4973, 0.0000, 0.0000, 1.1130, 6.2822, 0.0000, 0.8269, 0.0000, 10.8355, 0.0000, 2.9934, 3.8768, 0.0000, 1.5803, 9.5527, 0.0000, 0.0000, 11.1648, 1.8944, 0.0000, 3.1692, 1.2081, 3.3959, 0.0000, 0.0000, 0.0000, 7.5532, 2.9065, 6.0842, 0.3353, 2.3069, 2.9254, 1.1153, 1.4032, 0.0000, 0.0000, 0.0000, 0.7029, 1.1999, 0.0000, 1.6656, 0.0000, 0.0000, 0.8347, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 9 nodes and 8 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 162900,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 117177 with importance 0.0000\n - Index 1 with importance 0.0000\n - Index 2 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.2146, 0.0000, 1.0589, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.2219, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.9228, 0.7418, 2.6574, 0.0000, 2.7373, 1.0450, 0.0000, 7.3718, 0.0000, 0.0000, 1.6923, 0.0000, 0.0000, 0.3502, 0.0000, 0.2365, 3.8727, 0.0000, 0.0000, 0.9494, 0.0000, 0.9293, 0.0000, 4.5250, 0.2885, 0.0000, 0.0000, 0.0000, 0.0000, 3.9073, 0.4343, 0.0000, 0.0000, 0.1593, 0.0000, 0.0000, 0.0000, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 1 nodes and 0 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 167492,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 195679 with importance 0.6429\n - Index 195071 with importance 0.6406\n - Index 195859 with importance 0.6405\n - Index 192905 with importance 0.6405\n - Index 199041 with importance 0.6401\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 1.2586, 2.1266, 0.0000, 1.1144, 2.8215, 0.0000, 5.3713, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.6949, 1.8287, 0.6272, 0.0000, 0.0000, 0.0000, 0.0000, 0.5009, 0.0000, 0.0000, 0.9327, 1.5771, 8.8898, 0.0000, 0.0000, 0.0000, 1.8937, 0.0000, 0.0000, 0.0000, 2.5277, 0.0000, 3.1205, 0.0000, 0.0000, 0.0000, 1.9224, 0.0000, 0.0000, 1.2547, 3.4771, 4.7207, 2.5445, 0.4548, 2.9660, 0.0000, 1.9766, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.9816, 0.0000, 0.0000, 1.4156, 0.8855]\n\nSubgraph:\nSubgraph (k=2) with 21 nodes and 20 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 156948,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 180265 with importance 0.6377\n - Index 179201 with importance 0.6305\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.3200, 0.0000, 1.8984, 0.0000, 0.0000, 0.0000, 1.1206, 0.4433, 0.4177, 4.5033, 0.0000, 6.5669, 1.7992, 1.9667, 0.0000, 0.0000, 3.2202, 7.2214, 0.0000, 0.0000, 0.0000, 0.0000, 1.7233, 0.0000, 0.0000, 2.1848, 7.1085, 2.2654, 0.0000, 1.0128, 0.0000, 6.4366, 4.4349, 0.0000, 0.0000, 3.5409, 0.0000, 0.0000, 4.5753, 0.6783, 0.0000, 0.0186, 0.0732, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.7977, 0.0000, 0.0000, 2.5897, 2.3440, 0.0000, 0.0000, 1.9289, 0.0361, 5.1582, 0.0000, 0.2872, 4.0989, 0.0000, 1.9787]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 156909,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 117177 with importance 0.0000\n - Index 1 with importance 0.0000\n - Index 2 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.8846, 0.4050, 0.4863, 0.0000, 0.0000, 0.4563, 0.0000, 2.3881, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.1215, 0.0000, 2.3824, 0.0000, 0.3958, 5.2303, 0.0000, 2.1620, 1.0031, 1.7746, 1.3895, 0.4482, 1.6647, 1.0598, 0.0000, 3.0080, 0.0000, 0.0000, 0.0000, 0.0000, 1.5658, 2.3150, 0.2498, 0.0000, 0.0557, 0.0000, 1.0066, 0.0000, 0.0000, 0.9696, 0.5437, 1.5150, 0.6746, 1.1591, 0.0000, 0.0000, 0.0000, 0.0000, 0.2091, 4.1730, 0.0000, 0.0000, 0.5780, 0.0000, 0.0968, 0.0000, 0.0000, 1.3845, 0.5812]\n\nSubgraph:\nSubgraph (k=2) with 1 nodes and 0 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 195894,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 226446 with importance 0.6380\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.2555, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 4.1659, 0.0000, 3.1960, 0.0000, 1.4670, 3.7963, 0.5232, 0.0000, 0.8050, 0.0000, 2.8143, 0.0000, 0.0000, 0.0000, 0.0000, 1.0667, 2.1849, 1.6485, 0.0000, 0.0000, 0.7218, 6.0603, 0.0000, 0.0000, 0.0000, 0.2615, 0.0000, 0.0000, 0.0000, 1.8787, 0.0000, 0.1205, 0.3607, 1.3617, 0.0000, 0.0000, 1.1320, 0.6373, 0.1968, 0.0000, 0.0000, 0.0000, 0.0000, 1.2120, 0.0129, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.9838, 0.0000, 0.0000, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 2 nodes and 1 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 171685,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 198725 with importance 0.6271\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.7753, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 6.3889, 1.3836, 0.0000, 10.6225, 0.0000, 3.6383, 2.9762, 0.0000, 0.0000, 0.0000, 1.7073, 7.8462, 0.0000, 0.0000, 2.9098, 0.6502, 0.0000, 0.0000, 1.4262, 1.7175, 8.2607, 1.8073, 2.1554, 0.0000, 0.0000, 2.9713, 0.0000, 0.0000, 0.0000, 1.4848, 0.3216, 0.0000, 2.4259, 0.0000, 0.0000, 0.0000, 0.9568, 0.0000, 2.0175, 3.6849, 4.7875, 0.0000, 0.0000, 0.0000, 3.3365, 0.0000, 0.0000, 2.3022, 4.4109, 0.0000, 2.9843, 0.0000, 9.3559, 0.0000, 0.0000, 2.5395, 0.0000, 6.4758]\n\nSubgraph:\nSubgraph (k=2) with 2 nodes and 1 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 182524,
+    "gnn_pred": 0,
+    "llm_pred": 0,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 210210 with importance 0.6331\n - Index 208777 with importance 0.6319\n - Index 211674 with importance 0.6308\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.2080, 0.6368, 0.4005, 0.8151, 0.5679, 0.0000, 0.4817, 0.0000, 2.2977, 0.0000, 0.0000, 0.3821, 1.6969, 0.0000, 0.2348, 0.0000, 1.0540, 0.1321, 2.1012, 1.3485, 1.7193, 4.7932, 1.9571, 0.0165, 0.0000, 4.0908, 0.0000, 0.0257, 2.3104, 0.0000, 2.1522, 4.6285, 0.0000, 0.0000, 4.7972, 1.8807, 0.0000, 0.0000, 0.0130, 0.7422, 0.0000, 0.0000, 0.0000, 4.4698, 2.4912, 1.7027, 0.4407, 0.0000, 2.8833, 0.6325, 1.2764, 0.0000, 2.3688, 0.0000, 0.3949, 0.4487, 0.0000, 0.2022, 0.0000, 0.0000, 1.6494, 2.1041]\n\nSubgraph:\nSubgraph (k=2) with 4 nodes and 3 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 177517,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 117177 with importance 0.0000\n - Index 1 with importance 0.0000\n - Index 2 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 1.4023, 0.0000, 0.6586, 0.3431, 1.5622, 0.0000, 0.8561, 0.0000, 0.0000, 1.7891, 0.0000, 1.0890, 0.2807, 0.5385, 0.0000, 0.0000, 0.0000, 0.1617, 0.0000, 0.6210, 0.7007, 7.8219, 0.0000, 0.0000, 0.0000, 2.1479, 1.4094, 0.0451, 0.0000, 0.0000, 0.0000, 2.4095, 1.3973, 0.0000, 0.0000, 0.0000, 0.0000, 0.2776, 0.5968, 0.2228, 1.5062, 2.1343, 0.0000, 2.2571, 1.5674, 1.5318, 0.0000, 3.4622, 0.0000, 0.9891, 0.0000, 0.0000, 0.0000, 0.1534, 0.0000, 1.5322, 0.0000, 0.0000, 0.0000, 0.0000, 1.3057, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 1 nodes and 0 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 179097,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 117177 with importance 0.0000\n - Index 1 with importance 0.0000\n - Index 2 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [3.3287, 3.3972, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.4742, 0.0000, 0.0000, 0.0000, 0.4982, 1.6635, 0.0000, 0.0000, 0.0000, 2.5031, 0.0000, 0.0000, 0.0000, 0.0000, 0.6031, 0.0000, 0.0000, 0.0000, 0.0000, 1.4502, 2.4721, 0.9880, 0.0000, 0.0000, 1.1899, 0.0000, 0.0000, 4.6178, 0.0000, 0.0000, 0.0000, 1.3955, 0.0000, 0.0000, 0.0000, 1.8585, 0.0471, 0.0482, 3.1992, 1.3800, 2.3073, 0.0000, 5.0975, 0.1722, 0.0000, 0.0000, 0.0000, 0.0000, 4.2580, 0.0000, 0.0000, 0.0000, 0.0000, 3.8460, 0.0000, 2.6025, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 1 nodes and 0 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 154732,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 117177 with importance 0.0000\n - Index 1 with importance 0.0000\n - Index 2 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [4.6887, 2.8140, 0.0000, 0.0000, 0.0000, 1.1611, 0.3721, 0.4135, 10.3001, 0.0000, 0.4801, 3.7961, 0.6906, 0.0000, 0.0000, 0.0000, 0.0000, 0.1639, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.8720, 0.0000, 6.5013, 0.0000, 4.1670, 0.0000, 0.0000, 3.5741, 0.0000, 0.0000, 0.0000, 2.5569, 0.0000, 2.3741, 3.6552, 0.0000, 0.0000, 0.0000, 0.0000, 4.1860, 2.6519, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 2.0129, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 1 nodes and 0 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 192192,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 220108 with importance 0.6381\n - Index 221658 with importance 0.6336\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0000, 0.3433, 0.0000, 0.0000, 1.7362, 0.0000, 1.2031, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.3630, 1.6072, 0.0000, 0.4690, 0.6436, 0.0000, 0.0000, 0.0000, 0.7667, 0.8963, 0.0000, 4.0196, 0.0000, 0.0000, 0.4492, 0.0000, 0.0000, 0.4535, 0.0000, 0.0000, 0.0000, 0.6564, 0.0000, 0.0000, 0.0000, 0.9879, 0.0000, 0.3428, 1.4576, 0.4587, 0.0000, 1.8344, 0.7713, 1.3961, 0.0000, 0.0000, 0.0000, 0.7151, 0.8160, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 166518,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 189409 with importance 0.6395\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0717, 0.7141, 0.8229, 0.0000, 0.2032, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.8466, 1.2478, 0.7744, 0.0000, 0.0000, 0.6645, 0.3726, 0.0000, 0.3313, 0.8272, 3.9863, 0.4409, 0.2623, 0.0000, 1.6204, 0.0000, 0.2503, 2.5991, 0.0000, 1.2059, 4.4156, 0.0000, 0.0000, 4.1217, 0.4018, 0.0000, 0.9651, 0.7023, 0.9609, 0.0000, 0.0000, 0.0000, 1.5336, 0.5400, 1.5627, 0.5231, 0.4450, 0.9392, 0.8629, 0.9160, 0.0000, 0.1824, 0.0000, 0.8222, 0.7479, 0.0000, 0.7579, 0.0000, 0.0000, 0.0000, 0.0694]\n\nSubgraph:\nSubgraph (k=2) with 2 nodes and 1 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 137057,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 162234 with importance 0.6302\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0000, 0.8641, 1.6738, 0.5269, 1.3362, 0.0000, 0.0000, 0.0000, 2.4513, 0.2941, 0.0000, 0.0000, 0.0000, 0.0544, 0.0000, 0.0000, 0.2364, 1.0225, 0.9833, 0.0000, 0.9724, 4.0412, 1.5211, 0.0000, 0.0000, 2.0511, 0.0000, 0.1204, 1.3286, 0.0000, 0.0000, 3.0837, 0.4063, 0.5281, 1.3466, 0.6168, 0.0000, 1.0866, 0.0953, 0.6268, 0.0000, 1.1903, 0.0000, 1.6492, 2.0660, 1.2264, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.5078, 0.2423, 0.0000, 0.6464, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 2 nodes and 1 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 164031,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 190184 with importance 0.6358\n - Index 191876 with importance 0.6328\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.1411, 0.4987, 0.0000, 0.7935, 1.4847, 0.0000, 0.0000, 0.0000, 0.5237, 0.0673, 0.0000, 0.5442, 0.0000, 0.0000, 0.0000, 0.0000, 0.1128, 0.9952, 1.1049, 0.0000, 0.6309, 2.2939, 1.1810, 0.1422, 0.0000, 2.2927, 0.0000, 0.8021, 2.4955, 0.0000, 0.8903, 3.4172, 0.0000, 0.0000, 3.7332, 0.9127, 0.0000, 0.6872, 0.2624, 1.0199, 0.0000, 0.8890, 0.0000, 1.7831, 1.7290, 1.1497, 0.1966, 0.7572, 0.3829, 0.3205, 0.6328, 0.0000, 0.0000, 0.0000, 0.7105, 0.5993, 0.0000, 0.5226, 0.0000, 0.0000, 0.1413, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 140520,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 157784 with importance 0.6377\n - Index 157855 with importance 0.6323\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.2079, 0.0000, 1.5744, 0.0000, 0.3240, 0.0000, 0.0000, 0.1936, 0.0000, 0.0000, 0.0000, 0.8332, 0.3875, 0.0658, 0.0000, 1.6618, 0.1830, 0.8406, 0.0000, 0.3695, 0.4491, 3.2699, 0.5860, 0.7971, 0.0000, 0.0000, 1.1283, 0.2041, 1.3654, 0.0000, 0.3425, 1.2623, 0.0000, 0.0000, 0.9860, 0.0000, 0.0000, 0.7153, 0.3623, 0.0303, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0379, 0.0000, 0.0000, 0.5739, 0.0000, 0.3236, 0.4429, 1.1331, 0.0000, 0.2108, 0.9185, 0.2524, 0.0530, 0.0000, 0.0000, 0.8943, 0.8492]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 161622,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 188096 with importance 0.6346\n - Index 186119 with importance 0.6337\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.2979, 0.0000, 0.0000, 1.3614, 0.0000, 1.0394, 0.0000, 0.0000, 0.0000, 0.0000, 0.2795, 0.5585, 0.0000, 0.0000, 0.5407, 0.0000, 0.0000, 0.0000, 0.4953, 1.0293, 1.6147, 2.9734, 0.0000, 0.0000, 1.9396, 0.7235, 0.0000, 2.4285, 0.0000, 0.0000, 0.9054, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.3564, 0.0000, 0.6351, 1.3610, 0.0000, 0.0000, 0.0000, 0.5619, 0.0000, 0.0000, 0.0000, 0.0000, 0.5070, 0.0000, 0.2592, 0.0000, 0.8723, 0.0000, 0.0000, 0.5561, 0.0000, 0.7509]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 173367,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 193271 with importance 0.6400\n - Index 200679 with importance 0.6377\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.7183, 0.9355, 0.0000, 0.0000, 0.9613, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.2663, 0.1324, 0.4621, 0.0000, 0.0000, 0.0060, 0.6906, 0.0000, 0.0748, 0.6039, 2.4970, 0.4863, 0.4325, 0.0000, 2.3820, 0.0000, 0.7115, 3.1130, 0.0000, 0.6299, 3.2049, 0.0000, 0.0000, 2.9005, 0.3764, 0.0000, 0.6952, 0.1246, 1.2378, 0.0000, 0.0000, 0.0000, 0.5150, 0.0000, 1.3611, 0.7655, 0.6199, 0.1051, 0.9366, 0.1599, 0.0000, 0.6002, 0.0000, 0.0000, 1.1054, 0.0000, 0.8006, 0.0000, 0.0000, 0.2452, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 152459,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 117177 with importance 0.0000\n - Index 1 with importance 0.0000\n - Index 2 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.7175, 0.0000, 0.0000, 0.0000, 5.4764, 0.0000, 0.0000, 1.8036, 0.0000, 3.1946, 0.0000, 1.6617, 0.0000, 0.0000, 0.0000, 0.0000, 2.9904, 0.0000, 0.0000, 0.0000, 0.0000, 0.9971, 0.0000, 1.2822, 3.8442, 0.0000, 0.0000, 1.7530, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.1091, 4.2909, 0.0000, 2.9089, 0.0000, 0.0000, 0.0000, 1.7130, 6.4930, 0.0000, 1.3986, 1.1746, 5.5009, 0.9490, 0.0850, 3.5921, 2.0134, 0.0000, 0.0000, 0.0000, 1.1419, 0.0000, 0.0000, 0.0000, 0.0000, 0.4164, 0.0000, 0.0000, 5.9265, 2.8027]\n\nSubgraph:\nSubgraph (k=2) with 1 nodes and 0 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 141918,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 167470 with importance 0.6495\n - Index 163613 with importance 0.6465\n - Index 170414 with importance 0.6447\n - Index 165867 with importance 0.6443\n - Index 169208 with importance 0.6426\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0000, 0.9733, 0.0000, 0.0000, 0.3270, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 2.6063, 0.0000, 1.4040, 0.0000, 0.0000, 0.0000, 1.0119, 1.2721, 0.7638, 0.0000, 5.7782, 1.4164, 0.0536, 4.7375, 0.0000, 0.0000, 9.3790, 0.0000, 0.0000, 5.5132, 0.6317, 0.0000, 0.0000, 0.0000, 2.1838, 0.0000, 0.0000, 0.0000, 4.0886, 2.9597, 3.3859, 0.7428, 3.4714, 0.5248, 0.0000, 0.2601, 0.4203, 2.0618, 0.1094, 0.5421, 0.3279, 0.0000, 0.7362, 0.0000, 0.0000, 0.7218, 0.8790]\n\nSubgraph:\nSubgraph (k=2) with 37 nodes and 37 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 181428,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 210752 with importance 0.6403\n - Index 207436 with importance 0.6328\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.1918, 0.0229, 0.9445, 1.1903, 1.5588, 0.0000, 0.0000, 0.0000, 1.9469, 0.0000, 0.0000, 0.1930, 0.8460, 0.0056, 0.0000, 0.1234, 0.2269, 0.8854, 0.4554, 0.7343, 1.0118, 3.8551, 0.0000, 0.0000, 0.0000, 0.9994, 0.6734, 0.0000, 1.4805, 0.0000, 0.1700, 2.2598, 0.3715, 0.0000, 1.3101, 0.0000, 0.0000, 0.0000, 0.3219, 0.4551, 0.0000, 1.2304, 0.0000, 2.1455, 1.6425, 0.5244, 0.0000, 0.0000, 1.2669, 0.4346, 0.4771, 0.0000, 0.0000, 0.0000, 0.3675, 0.1967, 0.0000, 0.4577, 0.0000, 0.0000, 2.2498, 0.4734]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 176142,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 204630 with importance 0.6454\n - Index 206594 with importance 0.6417\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0000, 1.4896, 0.0000, 0.0000, 0.6919, 0.0000, 0.1955, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.4243, 0.0000, 0.6023, 0.2044, 0.0000, 0.0000, 0.8908, 0.0000, 0.0000, 0.4472, 1.3657, 2.0989, 0.0000, 3.6538, 0.0000, 0.0000, 1.4072, 0.0000, 0.0000, 1.8472, 0.0000, 1.5648, 3.0474, 1.1810, 0.0000, 0.2004, 0.7197, 1.3159, 0.0000, 0.0000, 0.0000, 2.1692, 1.0559, 3.4231, 1.8467, 1.2700, 1.1101, 0.0000, 0.3698, 1.7924, 1.4901, 0.0000, 0.3589, 0.1801, 0.0000, 0.2716, 0.0000, 0.0000, 0.3827, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 158303,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 183385 with importance 0.6434\n - Index 183767 with importance 0.6346\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 1.6689, 2.5357, 5.1007, 0.0000, 0.0000, 1.1883, 0.0000, 1.1954, 1.8403, 0.0000, 0.0000, 0.0000, 2.9189, 0.1704, 3.7517, 4.8363, 0.5111, 1.1237, 3.6312, 0.0000, 0.0000, 2.3958, 0.0000, 0.3638, 2.5054, 2.7133, 0.0000, 0.0000, 0.6441, 5.8926, 0.2630, 0.0000, 3.6836, 0.0000, 3.6316, 2.8269, 0.8040, 0.0000, 0.0000, 0.0000, 3.6707, 0.0000, 0.1636, 1.3998, 0.0000, 0.0000, 1.1908, 3.9178, 2.8526, 0.0000, 3.8699, 0.8258, 1.3284, 2.3739, 0.0000, 0.0936, 2.3116, 1.8215, 3.7044, 0.0000, 1.1156, 0.0000, 0.9830]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 146771,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 167412 with importance 0.6265\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0000, 10.6971, 0.0000, 0.1143, 0.1268, 0.0000, 3.0046, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 7.0716, 5.1352, 0.0000, 6.8120, 8.8111, 0.0000, 1.8449, 0.0000, 7.4548, 0.0000, 6.5251, 10.2108, 0.5577, 0.0000, 1.8912, 3.9982, 0.0000, 0.0000, 0.0000, 1.7692, 0.0000, 1.5791, 5.7184, 0.0000, 0.0000, 2.1058, 0.0000, 0.0000, 15.1779, 13.2946, 15.3863, 10.9701, 3.9311, 0.0000, 8.9003, 11.0384, 0.0000, 2.2137, 0.0000, 0.0000, 1.8334, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 12.3088, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 2 nodes and 1 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 168066,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 192365 with importance 0.6343\n - Index 193240 with importance 0.6310\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.3961, 0.9946, 0.0000, 0.0000, 2.8120, 0.0000, 0.8634, 0.0000, 0.0000, 0.0000, 0.0000, 0.6267, 0.0000, 0.0000, 0.0000, 1.7047, 0.0000, 2.0548, 0.0000, 0.1166, 0.0000, 0.0000, 1.9606, 0.8614, 0.0000, 4.7110, 0.8182, 0.0000, 1.9033, 0.0000, 0.0000, 0.1825, 0.0000, 0.0000, 0.0000, 0.4210, 0.0000, 0.0000, 0.0000, 0.3919, 0.0000, 0.4593, 0.0000, 0.8258, 1.3847, 2.3850, 0.3461, 0.6218, 0.0318, 0.0186, 0.0000, 0.6935, 1.0216, 0.0000, 0.0000, 0.6391, 0.0000, 0.1712, 0.0000, 0.0000, 1.1903, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 148503,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 172324 with importance 0.6273\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.9026, 0.0000, 0.0000, 9.5095, 0.0000, 1.1970, 0.0000, 0.0000, 1.7966, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 6.6459, 4.5339, 0.0000, 3.4760, 7.8917, 0.0000, 1.0046, 0.0000, 6.0193, 0.0000, 7.8885, 10.0714, 1.4660, 0.0000, 0.0000, 6.3216, 0.0000, 0.0000, 0.0000, 1.2684, 0.0000, 2.4002, 5.6033, 0.0000, 0.0000, 2.1257, 0.5207, 0.0000, 13.1717, 14.2303, 14.5565, 11.2385, 5.1034, 0.0000, 9.8412, 9.3546, 0.0000, 1.5732, 0.0000, 0.0000, 2.1062, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 12.1595, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 2 nodes and 1 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 139745,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 117177 with importance 0.0000\n - Index 1 with importance 0.0000\n - Index 2 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0515, 0.0000, 0.0000, 0.3039, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.1418, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.8374, 0.2260, 1.0642, 0.0000, 0.0000, 0.0000, 1.5665, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 2.1682, 0.7530, 0.0000, 3.1466, 0.0000, 0.0000, 3.4707, 0.2052, 0.0000, 0.0000, 0.0000, 0.0000, 0.3422, 0.0000, 0.0000, 0.6420, 0.2891, 0.0000, 0.0000, 0.1334, 0.0000, 1.0049, 0.0158, 0.0000, 0.0000, 0.0000, 0.4594, 0.3772, 0.0000, 0.0000, 0.0000, 0.0000, 0.9263, 0.8116]\n\nSubgraph:\nSubgraph (k=2) with 1 nodes and 0 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 200746,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 231104 with importance 0.6288\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 4.5144, 0.0000, 0.0000, 0.0000, 0.0000, 1.9680, 0.0000, 0.0000, 0.0000, 0.0000, 2.7642, 2.8755, 0.0000, 0.0000, 2.2170, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 3.3047, 5.5881, 1.9202, 0.0000, 1.7825, 1.4078, 0.0000, 2.6878, 0.0000, 0.0000, 0.3021, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 2.3105, 0.8114, 0.0000, 0.0000, 1.1355, 0.0000, 0.0000, 0.0000, 2.6692, 0.0000, 0.0000, 0.0000, 2.0125, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 2.9120, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 2 nodes and 1 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 147575,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 117177 with importance 0.0000\n - Index 1 with importance 0.0000\n - Index 2 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0000, 0.6687, 0.0000, 0.0000, 0.5683, 0.0000, 0.0000, 0.0000, 0.0000, 1.1124, 0.0000, 0.0378, 0.0130, 0.3699, 0.0000, 0.0000, 0.6323, 1.0827, 2.2488, 0.0000, 0.0000, 0.5253, 1.6340, 1.9466, 0.0000, 3.7297, 0.0000, 0.6003, 3.6602, 0.0000, 0.8065, 4.6071, 0.0000, 0.0000, 6.6923, 0.9329, 0.0000, 1.0214, 0.3895, 1.3419, 0.0000, 0.0000, 0.0000, 1.3084, 0.8226, 1.9862, 0.1412, 0.9206, 0.0209, 0.6418, 0.3761, 0.2179, 0.0605, 0.0000, 0.4973, 0.0000, 0.0000, 0.9951, 0.0000, 0.0000, 0.0000, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 1 nodes and 0 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 146094,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 117177 with importance 0.0000\n - Index 1 with importance 0.0000\n - Index 2 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0000, 0.0000, 1.3382, 0.6668, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 2.7793, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0809, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.1037, 0.0000, 0.0000, 2.5351, 0.0000, 0.1461, 0.4045, 0.0000, 0.0000, 8.7642, 0.2251, 0.0000, 0.0000, 0.7249, 0.2229, 0.0000, 0.0000, 0.0000, 0.1336, 2.7159, 0.0000, 1.9241, 0.0248, 2.4316, 0.0000, 4.3134, 0.0093, 0.0000, 0.0000, 0.0000, 1.0713, 1.7935, 0.8462, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 1 nodes and 0 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 152386,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 117177 with importance 0.0000\n - Index 1 with importance 0.0000\n - Index 2 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 1.3320, 0.0000, 1.5739, 0.0000, 1.9633, 0.0000, 0.0000, 3.0416, 0.0000, 1.8458, 0.0000, 0.7999, 0.0000, 0.0000, 0.0000, 1.4352, 1.4602, 0.0000, 0.0000, 1.1481, 0.0000, 2.4767, 0.0000, 0.9829, 2.9407, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.4000, 0.0000, 1.7283, 0.0000, 2.1113, 0.0000, 0.0000, 0.0000, 0.0000, 2.2091, 0.0000, 0.8475, 0.6533, 3.0576, 0.9109, 1.5231, 2.2919, 1.8544, 0.0000, 0.0000, 1.3341, 1.3805, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 4.0123, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 1 nodes and 0 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 182278,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 207909 with importance 0.6333\n - Index 209746 with importance 0.3949\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0723, 0.0245, 0.1787, 0.0205, 0.8287, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.1557, 0.0971, 0.4636, 0.0000, 0.3414, 0.3520, 0.5200, 0.0730, 0.1638, 0.3313, 1.9105, 0.7454, 0.7290, 0.0000, 2.9839, 0.0000, 1.1449, 2.5124, 0.0473, 0.2716, 3.5760, 0.0000, 0.0000, 4.1282, 0.8655, 0.0000, 0.6284, 0.4122, 1.0443, 0.0000, 0.0000, 0.0000, 1.6377, 1.0944, 1.1957, 0.0000, 0.2875, 0.9695, 0.1598, 0.4409, 0.0000, 0.0000, 0.0000, 0.7670, 0.3539, 0.0000, 0.5450, 0.0000, 0.0000, 0.4271, 0.7106]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 156511,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 180202 with importance 0.6339\n - Index 178984 with importance 0.6316\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [1.8264, 0.0000, 0.7919, 0.0000, 0.0000, 0.0000, 3.1017, 2.6144, 2.8594, 0.8985, 1.6352, 6.6673, 1.3895, 1.2899, 0.0570, 0.0000, 0.2516, 2.4575, 0.0000, 0.0000, 0.0000, 0.0000, 2.6186, 0.0000, 0.0000, 0.8352, 4.9241, 3.1546, 0.0000, 1.2414, 0.0000, 4.1924, 2.2408, 0.0000, 0.0000, 4.2240, 0.0000, 0.1598, 2.2226, 2.7234, 0.0000, 0.0000, 2.4934, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 2.1802, 0.0000, 0.0000, 0.6158, 0.0595, 0.0000, 0.0000, 0.3872, 0.0000, 1.6125, 0.0000, 4.8902, 2.8095, 0.0000, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 164390,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 189377 with importance 0.6424\n - Index 190942 with importance 0.6372\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0000, 0.0000, 2.0443, 0.0000, 1.8365, 0.0000, 1.0388, 0.0000, 1.2417, 1.8700, 0.0000, 0.7486, 0.1283, 0.1234, 0.0000, 0.0000, 0.0576, 0.4736, 0.0000, 0.0000, 1.0133, 2.0955, 0.1762, 0.5012, 0.0000, 2.7645, 0.0000, 1.1726, 0.0000, 0.0199, 0.1040, 0.0000, 0.0000, 0.6994, 0.0000, 0.9295, 0.0000, 3.0804, 0.0000, 0.0000, 0.0886, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.8584, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0406, 0.0000, 0.0000, 0.0000, 0.4574, 0.0000, 0.0000, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 190919,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 221358 with importance 0.6344\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.8572, 1.3644, 0.0000, 1.5595, 1.5076, 0.0000, 2.2414, 0.0000, 1.1085, 0.0000, 0.0000, 2.4856, 0.0917, 0.0000, 1.1431, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.4567, 1.3604, 0.8462, 0.0000, 4.0248, 0.0000, 1.0919, 0.5324, 0.0000, 1.5727, 1.1427, 0.0535, 0.0000, 0.0000, 0.1026, 0.0000, 1.5537, 0.0000, 0.2009, 0.0000, 0.1982, 0.0000, 3.0677, 2.1950, 2.5378, 0.4151, 1.1381, 1.3929, 0.2629, 0.0000, 1.1703, 1.7138, 0.0000, 0.0000, 1.7716, 0.0000, 0.0000, 0.0000, 0.0000, 1.1996, 0.2411]\n\nSubgraph:\nSubgraph (k=2) with 2 nodes and 1 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 189098,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 215101 with importance 0.6368\n - Index 213599 with importance 0.6336\n - Index 215193 with importance 0.6265\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.4311, 0.0000, 0.0000, 3.9277, 0.0000, 0.0000, 2.0046, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.2007, 9.6252, 0.0000, 0.2022, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 7.7980, 6.6845, 11.6416, 0.0000, 0.0000, 3.2380, 0.0000, 2.9731, 0.0000, 0.0000, 0.0000, 0.0000, 2.1544, 0.0000, 0.0000, 0.0000, 6.5042, 1.0191, 5.4660, 1.7350, 2.9273, 2.8504, 0.0000, 0.0000, 1.4050, 4.7512, 0.0000, 5.9866, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 8.1469, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 4 nodes and 3 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 162792,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 186692 with importance 0.6374\n - Index 188208 with importance 0.6308\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.2423, 1.7996, 0.0000, 2.0083, 1.3196, 0.0000, 2.9773, 0.0000, 3.5481, 0.0000, 0.0000, 1.1083, 0.3519, 0.4412, 0.0000, 0.0000, 0.0000, 2.2709, 0.0000, 0.0000, 0.0000, 1.9212, 0.7164, 0.0000, 0.0000, 3.4463, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.3262, 0.0000, 2.1046, 0.0000, 0.2738, 0.2963, 0.7835, 0.0000, 0.0000, 0.1634, 1.0356, 2.7305, 2.2763, 0.7426, 0.0000, 0.0000, 1.7677, 0.0000, 0.0000, 0.2832, 0.0000, 0.0000, 1.3431, 0.0000, 0.3646, 0.0000, 0.0000, 1.9613, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 164826,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 190942 with importance 0.6406\n - Index 186871 with importance 0.6392\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0000, 0.0000, 1.9939, 0.0000, 1.9970, 0.0000, 1.6153, 0.0000, 1.1747, 1.7801, 0.0000, 0.8564, 0.4697, 0.1153, 0.0000, 0.0000, 0.0828, 0.1295, 0.0000, 0.0000, 1.3463, 3.2092, 0.0131, 0.1191, 0.0000, 2.4058, 0.0000, 1.0893, 0.0000, 0.0000, 0.1316, 0.0000, 0.0000, 0.8422, 0.0000, 0.8834, 0.0000, 3.0653, 0.0279, 0.0000, 0.6221, 0.2328, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0386, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0128, 0.1316, 0.0000, 0.0000, 0.8688, 0.0000, 0.0000, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 191022,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 221153 with importance 0.6383\n - Index 220046 with importance 0.6372\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.5834, 0.0000, 0.6965, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.1521, 2.4877, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 2.8758, 0.0188, 0.0000, 0.0000, 0.5062, 0.0000, 0.5536, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.4804, 0.0000, 0.1127, 1.5551, 0.4760, 0.3096, 1.2546, 0.2565, 0.5508, 0.5429, 0.0000, 0.0000, 1.4376, 0.5779, 0.9731, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.1240, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 187689,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 117177 with importance 0.0000\n - Index 1 with importance 0.0000\n - Index 2 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [1.7167, 1.6770, 2.4816, 1.9177, 0.0000, 1.1751, 0.0000, 0.0000, 1.2677, 0.0000, 2.4606, 0.0000, 2.0742, 2.7698, 0.0000, 2.1970, 1.8777, 0.0000, 0.0000, 2.5517, 0.0000, 0.0000, 1.0505, 0.0000, 0.7756, 1.7228, 0.0000, 0.5499, 0.0000, 0.0000, 3.6002, 0.3640, 0.0000, 3.0551, 0.6030, 3.2296, 0.0000, 1.3503, 1.3215, 0.0000, 0.0000, 1.8828, 1.2469, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.8050, 2.4449, 1.9244, 1.7843, 0.0000, 0.5053, 1.4108, 0.0000, 0.0000, 0.1843, 0.0000, 1.4334, 0.0799, 0.0000, 0.5791, 1.0002]\n\nSubgraph:\nSubgraph (k=2) with 1 nodes and 0 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 142613,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 164966 with importance 0.6394\n - Index 168052 with importance 0.6330\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.1874, 0.0000, 0.0529, 0.0000, 3.0884, 0.0000, 1.7861, 0.0000, 1.7301, 0.0000, 1.5803, 2.3460, 0.0000, 0.4416, 1.2427, 0.2982, 0.0000, 0.0000, 0.1016, 0.2240, 0.0000, 0.7950, 1.9161, 5.0254, 0.0000, 0.0000, 0.0000, 1.6948, 0.0000, 0.3818, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0894, 0.0000, 0.8695, 0.0000, 2.2901, 0.1061, 0.0000, 2.2238, 0.2755, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.6081, 0.0000, 0.0000, 0.0556, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.6023, 0.0000, 0.0000, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 193773,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 117177 with importance 0.0000\n - Index 1 with importance 0.0000\n - Index 2 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0000, 0.0000, 2.3563, 0.0000, 0.0000, 0.0000, 2.3092, 0.0000, 1.3688, 0.0000, 0.0000, 0.0000, 0.4341, 0.0000, 0.0000, 2.7247, 0.0000, 2.2849, 0.0000, 0.0000, 1.3811, 1.7453, 0.9051, 0.0000, 0.0000, 3.2230, 3.3118, 0.0000, 0.0000, 0.0000, 0.0000, 1.8931, 0.0000, 0.0000, 0.0000, 0.3085, 0.0000, 0.0000, 0.3447, 0.0000, 0.0000, 0.0000, 0.0000, 2.5440, 0.6242, 1.4425, 0.0000, 2.2186, 1.3923, 0.1554, 0.0000, 0.5944, 3.3795, 0.8506, 0.0000, 1.1862, 0.0000, 0.0000, 0.0000, 0.0000, 1.1552, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 1 nodes and 0 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 138266,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 158578 with importance 0.6357\n - Index 160802 with importance 0.6327\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [2.5523, 0.0000, 1.9257, 0.0000, 0.0000, 0.0000, 0.8056, 2.3499, 2.7512, 1.4758, 1.7133, 5.8171, 1.8605, 3.0411, 1.0765, 0.0587, 0.9014, 3.3168, 0.0000, 0.0000, 0.0000, 0.1102, 3.0943, 0.0000, 0.0000, 0.4734, 4.6686, 0.0000, 0.0000, 0.8010, 0.0000, 4.9997, 3.9893, 0.0000, 0.0000, 4.0564, 0.0000, 0.0000, 3.2197, 1.9619, 0.0000, 0.0000, 3.7519, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.2144, 0.0000, 0.0000, 2.5772, 1.3282, 0.0000, 0.0000, 1.2701, 0.9356, 1.5209, 0.0000, 4.4018, 2.6847, 0.0000, 0.0000]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 181201,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 208788 with importance 0.6385\n - Index 208837 with importance 0.6303\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0863, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0429, 0.0000, 0.0000, 0.5118, 0.0000, 0.0000, 0.8310, 0.0000, 0.4695, 0.5738, 0.2345, 0.0000, 0.0000, 3.0877, 0.0000, 0.4559, 1.6379, 0.0000, 0.0000, 3.5035, 0.0000, 0.0000, 0.4009, 0.0000, 0.0000, 0.1719, 0.0000, 0.4463, 0.0000, 0.6738, 0.6223, 2.0835, 0.8424, 1.2928, 0.0000, 0.3503, 1.8542, 0.0000, 0.0000, 0.0000, 3.6421, 0.3516, 0.2768, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.1566]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 156850,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 178466 with importance 0.6365\n - Index 180012 with importance 0.6305\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [1.4789, 0.0000, 1.3145, 0.0000, 0.0000, 0.0000, 3.3296, 2.0546, 1.7720, 2.7283, 0.2707, 7.4720, 2.5418, 0.8966, 0.3676, 0.0000, 2.5492, 4.7160, 0.0000, 0.0000, 0.0000, 0.0000, 2.6590, 0.0000, 0.0000, 0.8928, 5.4112, 3.0988, 0.0000, 0.0395, 0.0000, 6.0045, 2.8184, 0.0000, 0.0000, 3.4642, 0.0000, 0.1372, 3.1341, 0.3041, 0.0000, 0.0000, 1.6312, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.5824, 0.0000, 0.0000, 1.4049, 0.2113, 0.0000, 0.0000, 0.7859, 0.0000, 2.7691, 0.0000, 3.9631, 2.8006, 0.0000, 0.5521]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 192935,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 220916 with importance 0.6376\n - Index 219991 with importance 0.6351\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.1215, 0.0000, 0.6852, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.4408, 3.5933, 0.0000, 1.1731, 0.3528, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 2.7745, 2.4503, 0.0000, 0.0000, 0.1120, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.1323, 0.0000, 0.0000, 0.0000, 0.0000, 0.4927, 1.1279, 0.0000, 0.0000, 0.7205, 0.0000, 0.0000, 0.9860, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.5633, 0.0691]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 192669,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 117177 with importance 0.0000\n - Index 1 with importance 0.0000\n - Index 2 with importance 0.0000\n - Index 3 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.7650, 0.0000, 2.8690, 0.0000, 0.0000, 0.0000, 4.5722, 2.4381, 5.7540, 5.2508, 0.0000, 13.6269, 3.6244, 4.4449, 0.0000, 0.0000, 2.0310, 10.1451, 0.0000, 0.0000, 0.0000, 0.0000, 3.2950, 0.0000, 0.0000, 3.6209, 12.3710, 2.9383, 0.0000, 0.1579, 0.0000, 9.4064, 6.9738, 0.0000, 0.0000, 5.9711, 0.0000, 0.0000, 5.6758, 1.9198, 0.0000, 0.0000, 0.3755, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 4.8253, 0.0000, 0.0000, 4.4710, 0.9962, 0.0000, 0.0000, 2.0985, 1.7222, 6.8520, 0.0000, 3.0815, 6.2522, 0.0000, 1.8382]\n\nSubgraph:\nSubgraph (k=2) with 1 nodes and 0 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  },
+  {
+    "dataset": "elliptic",
+    "model": "GCN",
+    "llm": "Qwen/Qwen3.5-2B",
+    "target_node": 161188,
+    "gnn_pred": 0,
+    "llm_pred": 1,
+    "prompt": "You are given an explanation of a GNN decision.\n\nExplanation:\nTop important edges/features:\n - Index 184955 with importance 0.6384\n - Index 183176 with importance 0.6338\n - Index 117177 with importance 0.0000\n - Index 234354 with importance 0.0000\n - Index 4 with importance 0.0000\n\n\nEmbedding:\nembedding: [0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.1778, 0.0000, 0.0000, 0.3943, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0885, 2.6059, 1.1571, 0.0000, 0.0000, 0.9046, 0.0000, 0.0000, 0.0000, 0.0000, 0.1522, 0.0000, 4.7724, 0.0000, 0.5480, 2.5272, 0.7206, 0.0000, 2.0781, 0.0000, 0.0000, 5.2027, 0.0364, 0.1522, 0.0000, 0.0000, 0.5989, 0.0000, 0.0000, 0.0000, 1.5495, 0.0000, 0.7031, 0.0000, 0.3912, 1.9196, 0.0000, 0.0000, 0.5868, 0.0000, 2.5456, 0.4847, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.8033]\n\nSubgraph:\nSubgraph (k=2) with 3 nodes and 2 edges.\n\nWhat class does this node belong to?\nReturn the predicted class in the following format: 'The predicted class is X' where X is the class label or index. Select for X (0 or 1) 0 for licit and 1 for illicit."
+  }
+]

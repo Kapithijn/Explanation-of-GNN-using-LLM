@@ -1,9 +1,7 @@
-"""Pipeline entry point (New_files).
+"""Pipeline MAin.
 
-This file is meant to be the *single* entry point for the whole pipeline described
-in `New_files/pipeline.md`.
 
-The intended flow is:
+The intended pipeline is:
 1) Data loading + preprocessing
 2) Model construction (GNN bundle)
 3) Training (and optional saving)
@@ -127,11 +125,11 @@ def default_config():
 	return {
 		"output_dir": "outputs",
 		"datasets": ["elliptic"],
-		"models": ["GCN"],
-		"llms": ["Qwen/Qwen3.5-4B"],
-		"extract_workers": 1,
+		"models": ["GAT"],
+		"llms": ["Qwen/Qwen3.5-2B"],
+		"extract_workers": 5,
 		"target_nodes": [],	
-		"num_target_nodes": 1,
+		"num_target_nodes": 50,
 		"target_node_pool": "test",
 		"target_node_sampling": "random",
 		"num_hops": 2,
