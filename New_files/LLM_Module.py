@@ -205,11 +205,79 @@ def generate_response(model, tokenizer, prompt: str, device: str, **gen_kwargs):
         generation_kwargs["max_new_tokens"] = 64
     generation_kwargs.setdefault("pad_token_id", tokenizer.pad_token_id)
 
-    output_ids = model.generate(
-        input_ids=input_ids,
-        attention_mask=attention_mask,
-        **generation_kwargs,
-    )
+    # Many instruct models ship a generation_config with sampling enabled.
+    # For this pipeline we prefer deterministic outputs (and it avoids MPS/FP16
+    # numerical issues that can yield NaN/Inf probabilities during sampling).
+    generation_kwargs.setdefault("do_sample", False)
+
+    # Basic sanity for common sampling params if the user explicitly enables sampling.
+    if bool(generation_kwargs.get("do_sample")):
+        temperature = generation_kwargs.get("temperature")
+        if temperature is None:
+            generation_kwargs["temperature"] = 1.0
+        else:
+            try:
+                temperature_value = float(temperature)
+            except Exception:
+                temperature_value = 1.0
+            if temperature_value <= 0:
+                generation_kwargs["temperature"] = 1.0
+
+        top_p = generation_kwargs.get("top_p")
+        if top_p is not None:
+            try:
+                top_p_value = float(top_p)
+            except Exception:
+                top_p_value = 1.0
+            if not (0.0 < top_p_value <= 1.0):
+                generation_kwargs["top_p"] = 1.0
+
+        top_k = generation_kwargs.get("top_k")
+        if top_k is not None:
+            try:
+                top_k_value = int(top_k)
+            except Exception:
+                top_k_value = 0
+            if top_k_value < 0:
+                generation_kwargs["top_k"] = 0
+
+    try:
+        output_ids = model.generate(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            **generation_kwargs,
+        )
+    except RuntimeError as exc:
+        message = str(exc)
+        is_sampling_prob_error = (
+            "probability tensor contains" in message
+            or "torch.multinomial" in message
+            or "multinomial" in message
+        )
+        if not is_sampling_prob_error:
+            raise
+
+        # Fallback: retry with greedy decoding.
+        print(
+            "Warning: LLM sampling produced invalid probabilities (NaN/Inf). "
+            "Retrying with deterministic decoding (do_sample=False)."
+        )
+        safe_kwargs = dict(generation_kwargs)
+        safe_kwargs["do_sample"] = False
+        for key in [
+            "temperature",
+            "top_p",
+            "top_k",
+            "typical_p",
+            "epsilon_cutoff",
+            "eta_cutoff",
+        ]:
+            safe_kwargs.pop(key, None)
+        output_ids = model.generate(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            **safe_kwargs,
+        )
 
     generated_ids = output_ids[0, input_ids.shape[-1]:]
     response = tokenizer.decode(generated_ids, skip_special_tokens=True)

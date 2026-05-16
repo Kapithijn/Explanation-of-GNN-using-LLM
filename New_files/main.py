@@ -125,14 +125,14 @@ def default_config():
 	return {
 		"output_dir": "outputs",
 		"datasets": ["elliptic"],
-		"models": ["GAT"],
-		"llms": ["Qwen/Qwen3.5-2B"],
+		"models": ["GAT"],  
+		"llms": ["Qwen/Qwen2.5-0.5B-Instruct"],#Qwen/Qwen3.5-2B or 
 		"extract_workers": 5,
 		"target_nodes": [],	
-		"num_target_nodes": 50,
+		"num_target_nodes": 10,
 		"target_node_pool": "test",
 		"target_node_sampling": "random",
-		"num_hops": 2,
+		"num_hops": 2, 
 		"prompt": {
 			"template": (
 				"You are given an explanation of a GNN decision.\n\n"
@@ -549,7 +549,13 @@ def run_evaluation_stage(config, extraction_records, llm_outputs):
 			)
 
 		for idx, record in enumerate(extraction_records):
-			gnn_pred = record["bundle"]["prediction"]["predicted_class"]
+			prediction_bundle = (record.get("bundle") or {}).get("prediction") or {}
+			gnn_pred = prediction_bundle.get("predicted_class")
+			if gnn_pred is None:
+				raise KeyError(
+					"Missing predicted_class in extraction record bundle: "
+					"expected record['bundle']['prediction']['predicted_class']."
+				)
 			llm_pred = llm_preds[idx]
 			comparisons.append(
 				{
@@ -557,6 +563,7 @@ def run_evaluation_stage(config, extraction_records, llm_outputs):
 					"model": record["model"],
 					"llm": llm_name,
 					"target_node": record["target_node"],
+					"target_class": prediction_bundle.get("target_class"),
 					"gnn_pred": gnn_pred,
 					"llm_pred": llm_pred,
 					"prompt": prompts[idx] if idx < len(prompts) else None,

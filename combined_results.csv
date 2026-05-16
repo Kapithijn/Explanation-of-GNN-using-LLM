@@ -1,7 +1,7 @@
 Model,Dataset,LLM,Run,Accuracy,Count,Source File
-GAT,elliptic,Qwen/Qwen3.5-2B,Run 1,0.82,50,RUN 3 SUM.json
-GAT,elliptic,Qwen/Qwen3.5-2B,Run 2,0.88,50,results_summary.json
-GCN,elliptic,Qwen/Qwen2.5-0.5B-Instruct,Run 1,0.18,50,First RUN SUM.json
-GCN,elliptic,Qwen/Qwen2.5-0.5B-Instruct,Run 2,0.34,50,Second RUN SUM.json
-GCN,elliptic,Qwen/Qwen3.5-2B,Run 1,0.02,50,Run4 Sum.json
-GCN,elliptic,Qwen/Qwen3.5-2B,Run 2,0.02,50,RUN 3 SUM.json
+GAT,elliptic,Qwen3.5-2B,Run 1,0.82,50,RUN3_SUM.json
+GAT,elliptic,Qwen3.5-2B,Run 2,0.88,50,RUN5_SUM.json
+GCN,elliptic,Qwen2.5-0.5B-Instruct,Run 1,0.18,50,RUN1_SUM.json
+GCN,elliptic,Qwen2.5-0.5B-Instruct,Run 2,0.34,50,RUN2_SUM.json
+GCN,elliptic,Qwen3.5-2B,Run 1,0.02,50,RUN3_SUM.json
+GCN,elliptic,Qwen3.5-2B,Run 2,0.02,50,RUN4_SUM.json

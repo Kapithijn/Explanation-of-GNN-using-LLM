@@ -21,9 +21,18 @@ def get_prediction(model, data, target_node):
         out = model(data.x, data.edge_index)
         logits = out[target_node]
         predicted_class = logits.argmax(dim=0).item()
+
+    target_class = None
+    y = getattr(data, "y", None)
+    if y is not None:
+        try:
+            target_class = int(y[target_node].item())
+        except Exception:
+            target_class = None
     
     return {
         "node_id": target_node,
+        "target_class": target_class,
         "logits": logits.cpu().numpy(),
         "predicted_class": predicted_class,
     }
