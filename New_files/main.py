@@ -13,6 +13,8 @@ This file wires together the modules in `New_files/` into an end-to-end run.
 """
 import torch
 
+import copy
+
 import argparse
 import json
 from pathlib import Path
@@ -74,10 +76,48 @@ def parse_args(argv=None):
 	parser.add_argument("--device", choices=["auto", "cpu", "cuda", "mps"], default="auto", help="Device selection.")
 	parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility.")
 	parser.add_argument(
+		"--num-runs",
+		type=int,
+		default=1,
+		help="Number of full pipeline runs (use with --seed-base for variance sweeps).",
+	)
+	parser.add_argument(
+		"--run-id",
+		type=str,
+		default=None,
+		help="Optional run identifier (used in output dir templates).",
+	)
+	parser.add_argument(
+		"--seed-base",
+		type=int,
+		default=None,
+		help="Base seed for multi-run; run i uses seed_base + i.",
+	)
+	parser.add_argument(
+		"--output-dir-template",
+		type=str,
+		default=None,
+		help="Template for output dir; supports {base} and {run_id}.",
+	)
+	parser.add_argument(
 		"--extract-workers",
 		type=int,
 		default=None,
 		help="Number of worker processes for extraction (1 = sequential).",
+	)
+	parser.set_defaults(large_graph_cpu_fallback=None)
+	fallback_group = parser.add_mutually_exclusive_group()
+	fallback_group.add_argument(
+		"--large-graph-cpu-fallback",
+		action="store_true",
+		dest="large_graph_cpu_fallback",
+		help="Enable automatic CPU fallback for very large graphs and CUDA OOM retries.",
+	)
+	fallback_group.add_argument(
+		"--no-large-graph-cpu-fallback",
+		action="store_false",
+		dest="large_graph_cpu_fallback",
+		help="Disable automatic CPU fallback for very large graphs and CUDA OOM retries.",
 	)
 
 	# Stage flags.
@@ -124,12 +164,12 @@ def default_config():
 	"""Return a minimal default config dict."""
 	return {
 		"output_dir": "outputs",
-		"datasets": ["elliptic"],
+		"datasets": ["elliptic", "DGraphFin"],
 		"models": ["GAT"],  
-		"llms": ["Qwen/Qwen2.5-0.5B-Instruct"],#Qwen/Qwen3.5-2B or 
-		"extract_workers": 5,
+		"llms": ["Qwen/Qwen2.5-3B-Instruct"],#Qwen/Qwen3.5-2B or Qwen/Qwen2.5-0.5B-Instruct Qwen2.5-3B-Instruct
+		"extract_workers": 2,
 		"target_nodes": [],	
-		"num_target_nodes": 10,
+		"num_target_nodes": 50,
 		"target_node_pool": "test",
 		"target_node_sampling": "random",
 		"num_hops": 2, 
@@ -139,7 +179,7 @@ def default_config():
 				"Explanation:\n{explanation}\n\n"
 				"Embedding:\n{embedding}\n\n"
 				"Subgraph:\n{subgraph}\n\n"
-				"What class does this node belong to?"
+				"What class does this node belong to? return 1 if positive, 0 if negative."
 			),
 			"embedding_max_length": None,
 		},
@@ -152,6 +192,7 @@ def default_config():
 		"generation": {
 			"max_new_tokens": 64,
 		},
+		"large_graph_cpu_fallback": True,
 	}
 
 
@@ -181,9 +222,62 @@ def apply_cli_overrides(config, args):
 		config["seed"] = int(args.seed)
 	if getattr(args, "extract_workers", None) is not None and args.extract_workers is not None:
 		config["extract_workers"] = max(1, int(args.extract_workers))
+	if getattr(args, "no_large_graph_cpu_fallback", False):
+		config["large_graph_cpu_fallback"] = False
+	elif getattr(args, "large_graph_cpu_fallback", None):
+		config["large_graph_cpu_fallback"] = True
 	if args.device is not None:
 		config["device"] = args.device
 	return config
+
+
+def _resolve_base_output_dir(config, args):
+	"""Resolve the base output directory before applying run-specific suffixes."""
+	if args.output_dir is not None:
+		return str(args.output_dir)
+	if isinstance(config, dict) and config.get("output_dir") is not None:
+		return str(config.get("output_dir"))
+	return "outputs"
+
+
+def _resolve_run_id(args, run_index):
+	"""Return a run id string or None for the single-run default."""
+	num_runs = int(getattr(args, "num_runs", 1) or 1)
+	if num_runs <= 1:
+		return str(args.run_id) if args.run_id is not None else None
+	if args.run_id:
+		return f"{args.run_id}_{run_index + 1}"
+	return str(run_index + 1)
+
+
+def _resolve_run_output_dir(config, args, run_id):
+	"""Return the per-run output directory path (or None to keep defaults)."""
+	output_template = getattr(args, "output_dir_template", None)
+	if output_template:
+		base_dir = _resolve_base_output_dir(config, args)
+		safe_run_id = run_id if run_id is not None else "1"
+		return output_template.format(base=base_dir, run_id=safe_run_id)
+
+	num_runs = int(getattr(args, "num_runs", 1) or 1)
+	if run_id is None and num_runs <= 1:
+		return args.output_dir
+
+	base_dir = _resolve_base_output_dir(config, args)
+	if run_id is None:
+		return base_dir
+	return str(Path(base_dir) / f"run_{run_id}")
+
+
+def _resolve_run_seed(config, args, run_index):
+	"""Return per-run seed or None when not specified."""
+	base = getattr(args, "seed_base", None)
+	if base is None:
+		base = getattr(args, "seed", None)
+	if base is None and isinstance(config, dict):
+		base = config.get("seed")
+	if base is None:
+		return None
+	return int(base) + int(run_index)
 
 
 def _candidate_target_nodes(data, pool_name: str):
@@ -277,31 +371,39 @@ def run_data_stage(config):
 	should_print = bool(config.get("print_data_info", True))
 
 	datasets = {}
+	skipped = []
 	for dataset_name in dataset_names:
 		kwargs = {}
 		if isinstance(dataset_kwargs, dict):
 			kwargs = dataset_kwargs.get(dataset_name, {}) or {}
 
-		data = load_dataset(dataset_name, **kwargs)
+		try:
+			data = load_dataset(dataset_name, **kwargs)
+		except FileNotFoundError as exc:
+			skipped.append((dataset_name, str(exc)))
+			continue
 		data = preprocess(data)
 		if should_print:
 			print_data_info(data)
 		datasets[dataset_name] = data
 
+	if skipped:
+		for dataset_name, message in skipped:
+			print(f"Skipping dataset '{dataset_name}': {message}")
+
+	if not datasets:
+		raise FileNotFoundError("No requested datasets could be loaded. Check that the raw dataset files are present.")
+
 	return datasets
 
 
-def run_model_build_stage(config, datasets):
-	"""Build a model bundle and optionally select a subset by name."""
-
-	if not datasets:
-		raise ValueError("No datasets provided. Run the data stage first.")
-
-	example_data = next(iter(datasets.values()))
-	if config.get("in_channels") is None:
-		config["in_channels"] = int(getattr(example_data, "num_node_features", 0))
-	if config.get("out_channels") is None:
-		labels = getattr(example_data, "y", None)
+def _build_model_config_for_data(config, data):
+	"""Infer model dimensions from a specific dataset."""
+	model_config = dict(config)
+	if model_config.get("in_channels") is None:
+		model_config["in_channels"] = int(getattr(data, "num_node_features", 0))
+	if model_config.get("out_channels") is None:
+		labels = getattr(data, "y", None)
 		if labels is None:
 			raise ValueError("Cannot infer out_channels because dataset has no 'y' labels.")
 		try:
@@ -309,31 +411,68 @@ def run_model_build_stage(config, datasets):
 			valid = labels[labels >= 0]
 			if valid.numel() == 0:
 				raise ValueError("Cannot infer out_channels because all labels are negative/unlabeled.")
-			config["out_channels"] = int(valid.max().item() + 1)
+			model_config["out_channels"] = int(valid.max().item() + 1)
 		except Exception:
-			config["out_channels"] = int(labels.max().item() + 1)
+			model_config["out_channels"] = int(labels.max().item() + 1)
+	return model_config
 
-	bundle = build_model_bundle(config)
+
+def _resolve_runtime_device_for_data(requested_device, data, enable_large_graph_cpu_fallback=True):
+	"""Prefer CPU for very large graphs when CUDA is requested."""
+	device = resolve_device(requested_device)
+	if device != "cuda" or not enable_large_graph_cpu_fallback:
+		return device
+
+	num_nodes = int(getattr(data, "num_nodes", 0) or 0)
+	num_edges = int(data.edge_index.size(1)) if getattr(data, "edge_index", None) is not None else 0
+	if num_nodes >= 1_000_000 or num_edges >= 2_000_000:
+		return "cpu"
+	return device
+
+
+def run_model_build_stage(config, datasets):
+	"""Build one model bundle per dataset and optionally select a subset by name."""
+
+	if not datasets:
+		raise ValueError("No datasets provided. Run the data stage first.")
 
 	selected_names = config.get("models")
-	if not selected_names:
-		return bundle
+	bundles = {}
+	for dataset_name, data in datasets.items():
+		model_config = _build_model_config_for_data(config, data)
+		bundle = build_model_bundle(model_config)
 
-	selected = {}
-	for model_name in selected_names:
-		if model_name not in bundle:
-			available = ", ".join(bundle.keys())
-			raise KeyError(f"Unknown model '{model_name}'. Available: {available}")
-		selected[model_name] = bundle[model_name]
+		if selected_names:
+			selected = {}
+			for model_name in selected_names:
+				if model_name not in bundle:
+					available = ", ".join(bundle.keys())
+					raise KeyError(f"Unknown model '{model_name}'. Available: {available}")
+				selected[model_name] = bundle[model_name]
+			bundle = selected
 
-	return selected
+		bundles[dataset_name] = bundle
+
+	return bundles
 
 
 def run_training_stage(config, model_bundle, datasets):
 	"""Train all model–dataset combinations and return training histories."""
 
 	train_cfg = config.get("train", {})
-	histories = train_all(model_bundle, datasets, train_cfg)
+	histories = {}
+	enable_large_graph_cpu_fallback = bool(config.get("large_graph_cpu_fallback", True))
+	for dataset_name, data in datasets.items():
+		bundle = model_bundle.get(dataset_name)
+		if bundle is None:
+			continue
+		device = _resolve_runtime_device_for_data(
+			config.get("device"),
+			data,
+			enable_large_graph_cpu_fallback=enable_large_graph_cpu_fallback,
+		)
+		per_dataset_histories = train_all(bundle, {dataset_name: data}, train_cfg, device=device)
+		histories[dataset_name] = per_dataset_histories
 	return {"histories": histories}
 
 
@@ -342,6 +481,7 @@ def run_extraction_stage(config, model_bundle, datasets):
 	from Extracion import extract_all
 
 	num_hops = int(config.get("num_hops", 2))
+	enable_large_graph_cpu_fallback = bool(config.get("large_graph_cpu_fallback", True))
 
 	try:
 		from tqdm.auto import tqdm  # type: ignore
@@ -352,6 +492,13 @@ def run_extraction_stage(config, model_bundle, datasets):
 	target_nodes_by_dataset = {}
 	total = 0
 	for dataset_name, data in datasets.items():
+		if dataset_name not in model_bundle:
+			continue
+		device = _resolve_runtime_device_for_data(
+			config.get("device"),
+			data,
+			enable_large_graph_cpu_fallback=enable_large_graph_cpu_fallback,
+		)
 		target_nodes = _select_target_nodes(config, data)
 		if not target_nodes:
 			raise ValueError(
@@ -359,14 +506,14 @@ def run_extraction_stage(config, model_bundle, datasets):
 				"or use --num-target-nodes with an appropriate pool (e.g., --target-node-pool test)."
 			)
 		target_nodes_by_dataset[dataset_name] = [int(v) for v in target_nodes]
-		total += len(target_nodes_by_dataset[dataset_name]) * len(model_bundle)
+		total += len(target_nodes_by_dataset[dataset_name]) * len(model_bundle[dataset_name])
 
 	if total == 0:
 		return []
 
 	print(
 		f"Starting extraction for {total} node(s) "
-		f"({len(datasets)} dataset(s) × {len(model_bundle)} model(s))."
+		f"({len(target_nodes_by_dataset)} dataset(s) × variable model counts)."
 	)
 	print("Note: this stage can be slow because GNNExplainer runs per target node.")
 
@@ -374,8 +521,11 @@ def run_extraction_stage(config, model_bundle, datasets):
 	if workers < 1:
 		workers = 1
 	if workers > 1:
+		requested_device = resolve_device(config.get("device"))
 		print(f"Parallel extraction enabled: {workers} worker process(es).")
 		print("Note: each worker loads its own copy of the graph and model (higher RAM use).")
+		if requested_device == "cuda" and not enable_large_graph_cpu_fallback:
+			print("Warning: parallel extraction on GPU can cause high memory use; reduce workers if needed.")
 
 	progress_bar = None
 	if tqdm is not None and total > 0:
@@ -385,8 +535,21 @@ def run_extraction_stage(config, model_bundle, datasets):
 	records = []
 	if workers == 1:
 		for dataset_name, data in datasets.items():
+			bundle = model_bundle.get(dataset_name)
+			if bundle is None:
+				continue
+			device = _resolve_runtime_device_for_data(
+				config.get("device"),
+				data,
+				enable_large_graph_cpu_fallback=enable_large_graph_cpu_fallback,
+			)
+			for model in bundle.values():
+				model.to(device)
+			if hasattr(data, "to"):
+				data = data.to(device)
+				datasets[dataset_name] = data
 			target_nodes = target_nodes_by_dataset[dataset_name]
-			for model_name, model in model_bundle.items():
+			for model_name, model in bundle.items():
 				for node_id in target_nodes:
 					if progress_bar is not None:
 						progress_bar.set_postfix_str(f"{model_name}|{dataset_name}|node={node_id}")
@@ -420,18 +583,21 @@ def run_extraction_stage(config, model_bundle, datasets):
 
 		# Save trained weights so each worker can load them without pickling the whole model.
 		state_paths = {}
-		for model_name, model in model_bundle.items():
-			path = tmp_dir / f"{model_name}.pt"
-			torch.save(model.state_dict(), path)
-			state_paths[model_name] = str(path)
-
-		model_config = {
-			"in_channels": int(config["in_channels"]),
-			"hidden_channels": int(config.get("hidden_channels", 64)),
-			"out_channels": int(config["out_channels"]),
-			"dropout": float(config.get("dropout", 0.5)),
-			"gat_heads": int(config.get("gat_heads", 4)),
-		}
+		model_configs = {}
+		for dataset_name, bundle in model_bundle.items():
+			data = datasets.get(dataset_name)
+			if data is None:
+				continue
+			device = _resolve_runtime_device_for_data(
+				config.get("device"),
+				data,
+				enable_large_graph_cpu_fallback=enable_large_graph_cpu_fallback,
+			)
+			model_configs[dataset_name] = _build_model_config_for_data(config, data)
+			for model_name, model in bundle.items():
+				path = tmp_dir / f"{dataset_name}__{model_name}.pt"
+				torch.save(model.state_dict(), path)
+				state_paths[(dataset_name, model_name)] = str(path)
 
 		dataset_kwargs_all = config.get("dataset_kwargs", {})
 		if not isinstance(dataset_kwargs_all, dict):
@@ -445,8 +611,17 @@ def run_extraction_stage(config, model_bundle, datasets):
 		with ProcessPoolExecutor(max_workers=workers, mp_context=ctx) as executor:
 			for dataset_name in datasets.keys():
 				dataset_kwargs = dataset_kwargs_all.get(dataset_name, {})
-				for model_name in model_bundle.keys():
-					state_dict_path = state_paths[model_name]
+				bundle = model_bundle.get(dataset_name)
+				if bundle is None:
+					continue
+				device = _resolve_runtime_device_for_data(
+					config.get("device"),
+					datasets[dataset_name],
+					enable_large_graph_cpu_fallback=enable_large_graph_cpu_fallback,
+				)
+				model_config = model_configs[dataset_name]
+				for model_name in bundle.keys():
+					state_dict_path = state_paths[(dataset_name, model_name)]
 					for node_id in target_nodes_by_dataset[dataset_name]:
 						futures.append(
 							executor.submit(
@@ -458,6 +633,7 @@ def run_extraction_stage(config, model_bundle, datasets):
 								state_dict_path,
 								int(node_id),
 								int(num_hops),
+								device=device,
 								torch_num_threads=per_worker_threads,
 								seed=int(seed) if seed is not None else None,
 							)
@@ -682,20 +858,41 @@ def main(argv=None):
 	"""CLI entry point."""
 	args = parse_args(argv)
 	config = load_config(args.config)
-	state = run_pipeline(config, args)
 
-	evaluation = state.get("evaluation")
-	if isinstance(evaluation, dict):
-		paths = evaluation.get("paths")
-		if isinstance(paths, dict):
-			summary_path = paths.get("summary")
-			raw_path = paths.get("raw")
-			if summary_path or raw_path:
-				print("Saved results:")
-				if summary_path:
-					print(f"- summary: {summary_path}")
-				if raw_path:
-					print(f"- raw: {raw_path}")
+	num_runs = int(getattr(args, "num_runs", 1) or 1)
+	if num_runs < 1:
+		raise ValueError("--num-runs must be >= 1")
+
+	for run_index in range(num_runs):
+		run_id = _resolve_run_id(args, run_index)
+		per_run_args = copy.deepcopy(args)
+		per_run_args.seed = _resolve_run_seed(config, args, run_index)
+		per_run_args.output_dir = _resolve_run_output_dir(config, args, run_id)
+
+		if num_runs > 1 or run_id is not None:
+			label = f"Run {run_index + 1}/{num_runs}"
+			if run_id is not None:
+				label += f" (id={run_id})"
+			print(f"=== {label} ===")
+			if per_run_args.seed is not None:
+				print(f"Seed: {per_run_args.seed}")
+			if per_run_args.output_dir is not None:
+				print(f"Output dir: {per_run_args.output_dir}")
+
+		state = run_pipeline(config, per_run_args)
+
+		evaluation = state.get("evaluation")
+		if isinstance(evaluation, dict):
+			paths = evaluation.get("paths")
+			if isinstance(paths, dict):
+				summary_path = paths.get("summary")
+				raw_path = paths.get("raw")
+				if summary_path or raw_path:
+					print("Saved results:")
+					if summary_path:
+						print(f"- summary: {summary_path}")
+					if raw_path:
+						print(f"- raw: {raw_path}")
 	return 0
 
 

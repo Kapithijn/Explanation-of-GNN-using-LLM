@@ -16,11 +16,12 @@ def _stable_kwargs_key(kwargs):
 		return str(sorted((str(k), str(v)) for k, v in kwargs.items()))
 
 
-def _load_data_cached(dataset_name, dataset_kwargs):
+def _load_data_cached(dataset_name, dataset_kwargs, device):
 	"""Load and preprocess the dataset once per worker process."""
 	from Data_File import load_dataset, preprocess
 
-	key = f"{dataset_name}|{_stable_kwargs_key(dataset_kwargs)}"
+	device_key = str(device) if device is not None else "cpu"
+	key = f"{dataset_name}|{_stable_kwargs_key(dataset_kwargs)}|{device_key}"
 	cached = _DATA_CACHE.get(key)
 	if cached is not None:
 		return cached
@@ -28,15 +29,18 @@ def _load_data_cached(dataset_name, dataset_kwargs):
 	kwargs = dataset_kwargs or {}
 	data = load_dataset(dataset_name, **kwargs)
 	data = preprocess(data)
+	if device is not None and hasattr(data, "to"):
+		data = data.to(device)
 	_DATA_CACHE[key] = data
 	return data
 
 
-def _load_model_cached(model_name, model_config, state_dict_path):
+def _load_model_cached(model_name, model_config, state_dict_path, device):
 	"""Build the model architecture and load weights once per worker process."""
 	from GNN_Definition import build_model_bundle
 
-	key = (model_name, state_dict_path)
+	device_key = str(device) if device is not None else "cpu"
+	key = (model_name, state_dict_path, device_key)
 	cached = _MODEL_CACHE.get(key)
 	if cached is not None:
 		return cached
@@ -49,6 +53,8 @@ def _load_model_cached(model_name, model_config, state_dict_path):
 	model = bundle[model_name]
 	state = torch.load(state_dict_path, map_location="cpu")
 	model.load_state_dict(state)
+	if device is not None:
+		model.to(device)
 	model.eval()
 	_MODEL_CACHE[key] = model
 	return model
@@ -62,6 +68,7 @@ def extract_one(
 	state_dict_path,
 	node_id,
 	num_hops,
+	device=None,
 	torch_num_threads=None,
 	seed=None,
 ):
@@ -80,8 +87,9 @@ def extract_one(
 		# Make per-node randomness stable but distinct across nodes.
 		torch.manual_seed(int(seed) + int(node_id))
 
-	data = _load_data_cached(dataset_name, dataset_kwargs)
-	model = _load_model_cached(model_name, model_config, state_dict_path)
+	torch_device = torch.device(device) if device is not None else torch.device("cpu")
+	data = _load_data_cached(dataset_name, dataset_kwargs, torch_device)
+	model = _load_model_cached(model_name, model_config, state_dict_path, torch_device)
 
 	from Extracion import extract_all
 

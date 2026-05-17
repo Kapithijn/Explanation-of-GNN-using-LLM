@@ -2,7 +2,22 @@ import random
 import numpy as np
 import torch
 
-evaluate = True  # Set to False to skip evaluation after training
+ENABLE_EVALUATION = True  # Set to False to skip evaluation after training
+
+
+def _move_data_to_device(data, device):
+    if hasattr(data, "to"):
+        return data.to(device)
+    return data
+
+
+def _is_cuda_oom(error):
+	message = str(error).lower()
+	return isinstance(error, torch.OutOfMemoryError) or "out of memory" in message
+
+
+def _build_optimizer(model, lr):
+    return torch.optim.Adam(model.parameters(), lr=lr)
 
 def set_seed(seed=42):
     random.seed(seed)
@@ -77,25 +92,61 @@ def train_model(model, data, optimizer, criterion, config):
     
     return history
 
-def train_all(model_bundle, datasets, config):
+def train_all(model_bundle, datasets, config, device="cpu"):
     """Train all models on all datasets."""
     histories = {}
     lr = config.get("lr", 0.01)
-    
+    enable_large_graph_cpu_fallback = bool(config.get("large_graph_cpu_fallback", True))
+
+    torch_device = torch.device(device) if device is not None else torch.device("cpu")
+
     for dataset_name, data in datasets.items():
         for model_name, model in model_bundle.items():
-            optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+            initial_state = {key: value.detach().clone() for key, value in model.state_dict().items()}
             criterion = torch.nn.CrossEntropyLoss()
             
             key = f"{model_name}_{dataset_name}"
-            histories[key] = train_model(model, data, optimizer, criterion, config)
+            try:
+                optimizer = _build_optimizer(model, lr)
+                model.to(torch_device)
+                data_device = _move_data_to_device(data, torch_device)
+                histories[key] = train_model(model, data_device, optimizer, criterion, config)
+            except (torch.OutOfMemoryError, RuntimeError) as exc:
+                if (
+                    not enable_large_graph_cpu_fallback
+                    or not _is_cuda_oom(exc)
+                    or torch_device.type != "cuda"
+                ):
+                    raise
+
+                print(f"CUDA OOM while training {model_name} on {dataset_name}; retrying on CPU.")
+                torch.cuda.empty_cache()
+                model.load_state_dict(initial_state)
+                model.to("cpu")
+                optimizer = _build_optimizer(model, lr)
+                cpu_data = _move_data_to_device(data, torch.device("cpu"))
+                histories[key] = train_model(model, cpu_data, optimizer, criterion, config)
 
     print("Training complete for all models and datasets.")
-    if evaluate:
+    if ENABLE_EVALUATION:
         print("Evaluating models...")
         for dataset_name, data in datasets.items():
             for model_name, model in model_bundle.items():
-                accuracy = evaluate(model, data)
+                try:
+                    model.to(torch_device)
+                    data_device = _move_data_to_device(data, torch_device)
+                    accuracy = evaluate(model, data_device)
+                except (torch.OutOfMemoryError, RuntimeError) as exc:
+                    if (
+                        not enable_large_graph_cpu_fallback
+                        or not _is_cuda_oom(exc)
+                        or torch_device.type != "cuda"
+                    ):
+                        raise
+
+                    torch.cuda.empty_cache()
+                    model.to("cpu")
+                    accuracy = evaluate(model, _move_data_to_device(data, torch.device("cpu")))
                 print(f"{model_name} on {dataset_name}: Accuracy = {accuracy:.4f}")
     return histories
 

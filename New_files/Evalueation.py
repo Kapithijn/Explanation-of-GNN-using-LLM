@@ -16,14 +16,14 @@ def compare_predictions(gnn_pred, llm_pred):
     """
     if isinstance(gnn_pred, int):
         try:
-            llm_label = int(llm_pred)
-            return gnn_pred == llm_label
-        except ValueError:
+            llm_label = llm_pred if isinstance(llm_pred, int) else parse_prediction(str(llm_pred))
+            return gnn_pred == int(llm_label)
+        except (TypeError, ValueError):
             return False
     elif isinstance(gnn_pred, str):
         gnn_label = gnn_pred.strip().lower()
-        llm_label = parse_prediction(llm_pred).strip().lower()
-        return gnn_label == llm_label
+        llm_label = parse_prediction(str(llm_pred))
+        return gnn_label == str(llm_label).strip().lower()
     else:
         raise TypeError("Unsupported prediction types for comparison.")
 

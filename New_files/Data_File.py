@@ -37,6 +37,12 @@ def load_elliptic_temporal(t=1, root=ELLIPTIC_TEMPORAL_ROOT, force_reload=False)
 
 def load_dgraphfin(root=DGRAPHFIN_ROOT, force_reload=False):
 	"""Load the DGraphFin dynamic financial graph dataset."""
+	raw_zip = Path(root) / "raw" / "DGraphFin.zip"
+	if not raw_zip.exists():
+		raise FileNotFoundError(
+			f"Missing DGraphFin dataset archive: {raw_zip}. "
+			"Download 'DGraphFin.zip' from https://dgraph.xinye.com and place it in the raw directory."
+		)
 	dataset = DGraphFin(root=str(root), force_reload=force_reload)
 	return _to_data(dataset)
 

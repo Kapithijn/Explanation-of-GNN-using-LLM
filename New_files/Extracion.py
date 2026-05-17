@@ -50,6 +50,7 @@ def get_explanation(model, data, target_node):
     Returns:
         Dictionary with 'edge_mask' and 'feature_mask' (numpy arrays)
     """
+    model.eval()
     explainer = Explainer(
         model=model,
         algorithm=GNNExplainer(epochs=50),
