@@ -1,0 +1,29 @@
+# Core tensor and graph stack
+torch
+torch-geometric
+
+# LLM / inference stack
+transformers
+accelerate
+safetensors
+tokenizers
+sentencepiece
+huggingface-hub
+
+# Scientific Python stack used across the pipeline
+numpy
+pandas
+scikit-learn
+scipy
+tqdm
+pyyaml
+matplotlib
+
+# Optional but commonly needed by PyG / datasets / plotting
+networkx
+
+# Notes for Snellius:
+# - Install PyTorch and PyG with the correct CUDA wheels for the node you request.
+# - If plain `pip install -r requirements.txt` is not enough, install torch first
+#   from the official PyTorch wheel index, then install torch-geometric and the
+#   rest of the requirements.

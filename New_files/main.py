@@ -164,12 +164,12 @@ def default_config():
 	"""Return a minimal default config dict."""
 	return {
 		"output_dir": "outputs",
-		"datasets": ["Dgraph"],#elliptic
-		"models": ["GIN", "GraphSAGE"],  # subset of bundle keys or None for all
+		"datasets": ["elliptic"],#elliptic
+		"models": ["GAT"],  # subset of bundle keys or None for all
 		"llms": ["Qwen/Qwen2.5-3B-Instruct"],#Qwen/Qwen3.5-2B or Qwen/Qwen2.5-0.5B-Instruct Qwen2.5-3B-Instruct
-		"extract_workers": 2,
+		"extract_workers": 1,
 		"target_nodes": [],	
-		"num_target_nodes": 50,
+		"num_target_nodes": 1,
 		"target_node_pool": "test",
 		"target_node_sampling": "random",
 		"num_hops": 2, 

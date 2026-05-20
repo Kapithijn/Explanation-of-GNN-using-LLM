@@ -1,0 +1,18 @@
+{
+  "GCN|elliptic|Qwen/Qwen2.5-3B-Instruct": {
+    "accuracy": 0.0,
+    "count": 50
+  },
+  "GAT|elliptic|Qwen/Qwen2.5-3B-Instruct": {
+    "accuracy": 0.14,
+    "count": 50
+  },
+  "GIN|elliptic|Qwen/Qwen2.5-3B-Instruct": {
+    "accuracy": 0.0,
+    "count": 50
+  },
+  "GraphSAGE|elliptic|Qwen/Qwen2.5-3B-Instruct": {
+    "accuracy": 0.0,
+    "count": 50
+  }
+}

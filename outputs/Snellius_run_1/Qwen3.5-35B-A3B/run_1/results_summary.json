@@ -1,0 +1,18 @@
+{
+  "GCN|elliptic|Qwen/Qwen3.5-35B-A3B": {
+    "accuracy": 0.28,
+    "count": 50
+  },
+  "GAT|elliptic|Qwen/Qwen3.5-35B-A3B": {
+    "accuracy": 0.26,
+    "count": 50
+  },
+  "GIN|elliptic|Qwen/Qwen3.5-35B-A3B": {
+    "accuracy": 0.22,
+    "count": 50
+  },
+  "GraphSAGE|elliptic|Qwen/Qwen3.5-35B-A3B": {
+    "accuracy": 0.2,
+    "count": 50
+  }
+}

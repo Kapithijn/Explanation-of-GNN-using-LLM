@@ -1,0 +1,74 @@
+#!/bin/bash
+#SBATCH --job-name=gnn_llm_pipeline
+#SBATCH --output=snellius_gnn_llm_%A_%a.out
+#SBATCH --error=snellius_gnn_llm_%A_%a.err
+#SBATCH --array=0-2                   # 3 tasks: one per LLM
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=128G
+#SBATCH --gres=gpu:a100:1             # request 1 GPU (adjust if needed)
+#SBATCH --time=24:00:00
+#SBATCH --partition=gpu
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=your.email@domain
+
+## Tunable parameters
+EXTRACT_WORKERS=2         # number of parallel extraction worker processes per job
+NUM_TARGET_NODES=50       # 50 nodes per model as requested
+NUM_HOPS=2
+DEVICE="cuda"
+SEED=42
+NUM_RUNS=3                # sym:num_runs -- run count (kept for clarity)
+
+# Map array index to LLM names
+LLMS=(
+  "Qwen/Qwen2.5-3B-Instruct"
+  "Qwen/Qwen3.5-4B"
+  "Qwen/Qwen3.5-9B"
+)
+LLM="${LLMS[$SLURM_ARRAY_TASK_ID]}"
+
+# Datasets and models to run
+DATASETS=("Dgraph" "elliptic")
+MODELS=("GCN" "GAT" "GIN" "GraphSAGE")
+
+# Paths - edit to match where you cloned the repo on Snellius
+PROJECT_DIR="/scratch-shared/$USER/Explanation-of-GNN-using-LLM"
+cd "$PROJECT_DIR" || { echo "Project dir not found: $PROJECT_DIR"; exit 1; }
+
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+export MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK
+export TOKENIZERS_PARALLELISM=false
+
+# Load modules or activate conda environment (edit to match your site)
+# module load python/3.10 cuda/11.8
+# source /path/to/miniconda3/etc/profile.d/conda.sh
+# conda activate myenv
+
+# Install once in the environment if needed:
+# pip install -r requirements.txt
+
+mkdir -p "$PROJECT_DIR/outputs"
+
+# Build CLI args
+DATASETS_ARG="${DATASETS[*]}"
+MODELS_ARG="${MODELS[*]}"
+
+echo "Starting job: SLURM_JOB_ID=$SLURM_JOB_ID ARRAY_TASK=$SLURM_ARRAY_TASK_ID"
+echo "LLM=${LLM}  Datasets=${DATASETS_ARG}  Models=${MODELS_ARG}  Targets=${NUM_TARGET_NODES}"
+
+python New_files/main.py \
+  --datasets $DATASETS_ARG \
+  --models $MODELS_ARG \
+  --llms "$LLM" \
+  --num-target-nodes $NUM_TARGET_NODES \
+  --target-node-pool test \
+  --num-hops $NUM_HOPS \
+  --extract-workers $EXTRACT_WORKERS \
+  --device $DEVICE \
+  --seed $SEED \
+  --num-runs $NUM_RUNS \
+  --output-dir "outputs/${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
+
+echo "Job finished: $SLURM_JOB_ID:$SLURM_ARRAY_TASK_ID"

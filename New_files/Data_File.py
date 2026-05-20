@@ -4,7 +4,7 @@ from torch_geometric.data import Data
 from torch_geometric.datasets import EllipticBitcoinDataset, EllipticBitcoinTemporalDataset, DGraphFin
 import torch
 
-DATA_ROOT = Path("data")
+DATA_ROOT = Path(__file__).parent / "data"
 ELLIPTIC_ROOT = DATA_ROOT / "elliptic_dataset"
 ELLIPTIC_TEMPORAL_ROOT = DATA_ROOT / "elliptic_temporal_dataset"
 DGRAPHFIN_ROOT = DATA_ROOT / "dgraphfin_dataset"
