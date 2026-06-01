@@ -164,9 +164,9 @@ def default_config():
 	"""Return a minimal default config dict."""
 	return {
 		"output_dir": "outputs",
-		"datasets": ["elliptic"],#elliptic
+		"datasets": ["dgraphfin"],#elliptic
 		"models": ["GAT"],  # subset of bundle keys or None for all
-		"llms": ["Qwen/Qwen2.5-3B-Instruct"],#Qwen/Qwen3.5-2B or Qwen/Qwen2.5-0.5B-Instruct Qwen2.5-3B-Instruct
+		"llms": ["Qwen/Qwen2.5-0.5B-Instruct"],#Qwen/Qwen3.5-2B or Qwen/Qwen2.5-0.5B-Instruct Qwen2.5-3B-Instruct
 		"extract_workers": 1,
 		"target_nodes": [],	
 		"num_target_nodes": 1,

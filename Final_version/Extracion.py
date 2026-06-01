@@ -1,8 +1,34 @@
 import torch
 import torch.nn.functional as F
 from torch_geometric.explain import Explainer, GNNExplainer
-from torch_geometric.utils import k_hop_subgraph
+from torch_geometric.utils import add_self_loops, k_hop_subgraph, remove_self_loops
 import numpy as np
+
+
+def _uses_gat_self_loops(model):
+    """Return True when a model contains a GATConv that adds self-loops."""
+    for module in model.modules():
+        if module.__class__.__name__ == "GATConv" and hasattr(module, "add_self_loops"):
+            if bool(module.add_self_loops):
+                return True
+    return False
+
+
+def _edge_index_for_explanation(model, data):
+    """Match GATConv's effective edge set so explainer masks align."""
+    edge_index = data.edge_index
+    if not _uses_gat_self_loops(model):
+        return edge_index
+
+    # GATConv removes existing self-loops and then appends one self-loop per
+    # node internally. Passing that same edge set to GNNExplainer prevents its
+    # trainable edge mask from being shorter than the messages GAT propagates.
+    edge_index, _ = remove_self_loops(edge_index)
+    edge_index, _ = add_self_loops(
+        edge_index,
+        num_nodes=int(getattr(data, "num_nodes", data.x.size(0))),
+    )
+    return edge_index
 
 
 def get_prediction(model, data, target_node):
@@ -61,11 +87,12 @@ def get_explanation(model, data, target_node):
         model_config=dict(
             mode="multiclass_classification",
             task_level="node",
-            return_type="log_probs",
+            return_type="raw",
         ),
     )
 
-    explanation = explainer(data.x, data.edge_index, index=target_node)
+    explanation_edge_index = _edge_index_for_explanation(model, data)
+    explanation = explainer(data.x, explanation_edge_index, index=target_node)
     
     return {
         "node_id": target_node,
@@ -219,7 +246,7 @@ def build_candidate_set(data, target_node, true_neighbors, candidate_ratio=4, ma
     }
 
 
-def extract_all(model, data, target_node, num_hops=2):
+def extract_all(model, data, target_node, num_hops=2, include_candidate_set=True):
     """
     Runs all extractions and returns a structured bundle containing:
     - GNN prediction
@@ -243,7 +270,9 @@ def extract_all(model, data, target_node, num_hops=2):
     raw_features = get_raw_features(data, target_node)
     one_hop_neighbors = get_one_hop_neighbors(data, target_node)
     neighbor_feature_table = get_neighbor_feature_table(data, one_hop_neighbors)
-    candidate_set = build_candidate_set(data, target_node, one_hop_neighbors)
+    candidate_set = None
+    if include_candidate_set:
+        candidate_set = build_candidate_set(data, target_node, one_hop_neighbors)
     
     return {
         "dataset": None,

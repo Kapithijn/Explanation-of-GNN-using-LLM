@@ -1,7 +1,7 @@
 import json
 import csv
 import os
-from Final_version.LLM_Module import parse_prediction
+from LLM_Module import parse_prediction
 
 """Evaluation helpers for comparing GNN outputs with LLM predictions.
 Functions are intentionally small stubs; fill in implementation as needed.
@@ -65,10 +65,31 @@ def compute_precision_recall_f1(y_true, y_pred):
 def compute_classification_metrics(results):
     """Compute accuracy, precision, recall, and F1 for results records."""
     if not results:
-        return {"accuracy": 0.0, "precision": 0.0, "recall": 0.0, "f1": 0.0}
+        return {
+            "accuracy": 0.0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "parse_rate": 0.0,
+            "valid_n": 0,
+            "unknown_n": 0,
+        }
 
     y_true = [int(r["gnn_pred"]) for r in results]
-    y_pred = [int(parse_prediction(str(r["llm_pred"]))) for r in results]
+    y_pred = []
+    valid_n = 0
+    unknown_n = 0
+    for r in results:
+        try:
+            parsed = parse_prediction(str(r["llm_pred"]))
+            if parsed not in (0, 1):
+                raise ValueError(f"Unparseable LLM prediction: {r['llm_pred']}")
+            r["llm_pred"] = int(parsed)
+            valid_n += 1
+        except (ValueError, TypeError):
+            r["llm_pred"] = 2  # Assign a default label for unparseable predictions
+            unknown_n += 1
+        y_pred.append(int(r["llm_pred"]))
 
     precision, recall, f1 = compute_precision_recall_f1(y_true, y_pred)
     accuracy = compute_accuracy(results)
@@ -77,6 +98,9 @@ def compute_classification_metrics(results):
         "precision": precision,
         "recall": recall,
         "f1": f1,
+        "parse_rate": valid_n / len(results),
+        "valid_n": valid_n,
+        "unknown_n": unknown_n,
     }
 
 
@@ -260,4 +284,3 @@ def summarize_by_group(results, group_key):
         }
     
     return summary
-

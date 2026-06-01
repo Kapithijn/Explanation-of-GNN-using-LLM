@@ -18,10 +18,10 @@ import copy
 import argparse
 import json
 from pathlib import Path
-from Final_version.Data_File import load_dataset, preprocess, print_data_info
-from Final_version.GNN_Definition import build_model_bundle
-from Final_version.Train import train_all
-from Final_version.LLM_Module import (
+from Data_File import load_dataset, preprocess, print_data_info
+from GNN_Definition import build_model_bundle
+from Train import train_all
+from LLM_Module import (
 	format_explanation,
 	format_embedding,
 	build_prompt,
@@ -31,10 +31,10 @@ from Final_version.LLM_Module import (
 	run_inference_all,
 	parse_neighbor_selection_response,
 )
-from Final_version.Evalueation import aggregate_results, save_results, compute_classification_metrics, evaluate_reconstruction
+from Evalueation import aggregate_results, save_results, compute_classification_metrics, evaluate_reconstruction
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import multiprocessing as mp
-from Final_version.Parallel_Extraction import extract_one
+from Parallel_Extraction import extract_one
 
 def parse_args(argv=None):
 	"""Parse CLI arguments for running the pipeline."""
@@ -57,6 +57,16 @@ def parse_args(argv=None):
 	parser.add_argument("--datasets", nargs="*", default=None, help="Override dataset list (e.g., elliptic dgraphfin).")
 	parser.add_argument("--models", nargs="*", default=None, help="Override GNN model list (subset of bundle keys).")
 	parser.add_argument("--llms", nargs="*", default=None, help="Override LLM model list (HuggingFace model names/paths).")
+	parser.add_argument(
+		"--experiments",
+		nargs="*",
+		default=None,
+		help=(
+			"Override experiment list. Valid values include embedding_classification, "
+			"raw_graph_reasoning, reconstruction_1hop, reconstruction_1hop_embed_expl, "
+			"reconstruction_1hop_no_gnn, baseline_random, baseline_cosine, and baseline_feature."
+		),
+	)
 	parser.add_argument("--target-nodes", nargs="*", type=int, default=None, help="Override target node ids for extraction.")
 	parser.add_argument(
 		"--num-target-nodes",
@@ -175,18 +185,20 @@ def default_config():
 		"output_dir": "outputs",
 		"datasets": ["elliptic"],#elliptic
 		"models": ["GAT"],  # subset of bundle keys or None for all
-		"llms": ["Qwen/Qwen2.5-3B-Instruct"],#Qwen/Qwen3.5-2B or Qwen/Qwen2.5-0.5B-Instruct Qwen2.5-3B-Instruct
+		"llms": ["Qwen/Qwen2.5-0.5B-Instruct"],#Qwen/Qwen3.5-2B or Qwen/Qwen2.5-0.5B-Instruct Qwen2.5-3B-Instruct
 		"experiments": [
 			"embedding_classification",
-			"raw_graph_reasoning",
-			"reconstruction_1hop",
-			"baseline_random",
-			"baseline_cosine",
-			"baseline_feature",
+			# "raw_graph_reasoning",
+			# "reconstruction_1hop",
+			# "reconstruction_1hop_embed_expl",
+			# "reconstruction_1hop_no_gnn",
+			# "baseline_random",
+			# "baseline_cosine",
+			# "baseline_feature",
 		],
-		"extract_workers": 1,
+		"extract_workers": 2,
 		"target_nodes": [],	
-		"num_target_nodes": 1,
+		"num_target_nodes": 2,
 		"target_node_pool": "test",
 		"target_node_sampling": "random",
 		"num_hops": 2, 
@@ -264,7 +276,7 @@ def default_config():
 "Embedding:\n{embedding}\n\n"
 "Candidate set (node ids):\n{candidates}\n\n"
 "Return a JSON object exactly in this format:\n"
-"{\"selected_neighbors\": [<ids>], \"confidence\": <float>}\n"
+"{{\"selected_neighbors\": [<ids>], \"confidence\": <float>}}\n"
 "Do not output anything else."
 			)
 		},
@@ -291,6 +303,8 @@ def apply_cli_overrides(config, args):
 		config["models"] = args.models
 	if args.llms is not None:
 		config["llms"] = args.llms
+	if args.experiments is not None:
+		config["experiments"] = args.experiments
 	if args.target_nodes is not None:
 		config["target_nodes"] = args.target_nodes
 	if args.num_target_nodes is not None:
@@ -563,7 +577,7 @@ def run_training_stage(config, model_bundle, datasets):
 
 def run_extraction_stage(config, model_bundle, datasets):
 	"""Run extraction (prediction/explanation/embedding/subgraph) for target nodes."""
-	from Final_version.Extracion import extract_all, build_candidate_set, get_one_hop_neighbors
+	from Extracion import extract_all, build_candidate_set, get_one_hop_neighbors
 
 	num_hops = int(config.get("num_hops", 2))
 	enable_large_graph_cpu_fallback = bool(config.get("large_graph_cpu_fallback", True))
@@ -646,7 +660,7 @@ def run_extraction_stage(config, model_bundle, datasets):
 							pct = 100.0 * completed / total
 							print(f"Extraction progress: {completed}/{total} ({pct:.1f}%)")
 
-					bundle = extract_all(model, data, node_id, num_hops=num_hops)
+					bundle = extract_all(model, data, node_id, num_hops=num_hops, include_candidate_set=False)
 					recon_cfg = config.get("reconstruction", {}) or {}
 					candidate_ratio = recon_cfg.get("candidate_ratio", 4)
 					max_candidates = recon_cfg.get("max_candidates")
@@ -865,6 +879,9 @@ def _run_baseline_cosine(embedding, neighbor_table, candidate_set):
 		if feat is None:
 			continue
 		feat = np.array(feat, dtype=float)
+		# Skip if feature dimension doesn't match embedding dimension
+		if feat.shape[0] != vec.shape[0]:
+			continue
 		score = float(np.dot(vec, feat) / (vec_norm * (np.linalg.norm(feat) + 1e-8)))
 		scores.append((score, int(node_id)))
 	if not scores:
@@ -936,7 +953,7 @@ def run_experiment_stage(config, extraction_records):
 				prompts.append(build_classification_prompt(explanation_text, embedding_text, subgraph_text, template))
 			if not llm_names:
 				raise ValueError("LLM list is empty for embedding_classification experiment.")
-			predictions = run_inference_all(llm_names, prompts, device, **generation_cfg)
+			predictions = run_inference_all(llm_names, prompts, device, return_raw=True, **generation_cfg)
 			outputs[experiment] = {"prompts": prompts, "predictions": predictions}
 			continue
 
@@ -952,7 +969,7 @@ def run_experiment_stage(config, extraction_records):
 				prompts.append(build_raw_reasoning_prompt(raw_features_text, neighbor_table_text, edge_list_text, template))
 			if not llm_names:
 				raise ValueError("LLM list is empty for raw_graph_reasoning experiment.")
-			predictions = run_inference_all(llm_names, prompts, device, **generation_cfg)
+			predictions = run_inference_all(llm_names, prompts, device, return_raw=True, **generation_cfg)
 			outputs[experiment] = {"prompts": prompts, "predictions": predictions}
 			continue
 
@@ -968,7 +985,74 @@ def run_experiment_stage(config, extraction_records):
 				prompts.append(build_neighbor_selection_prompt(embedding_text, candidate_text, template))
 			if not llm_names:
 				raise ValueError("LLM list is empty for reconstruction_1hop experiment.")
-			predictions = run_inference_all(llm_names, prompts, device, **generation_cfg)
+			predictions = run_inference_all(llm_names, prompts, device, parse_predictions=False, **generation_cfg)
+			outputs[experiment] = {"prompts": prompts, "predictions": predictions}
+			continue
+
+		if experiment == "reconstruction_1hop_embed_expl":
+			prompts = []
+			for record in extraction_records:
+				bundle = record["bundle"]
+				embedding = bundle.get("embedding", {}).get("embedding")
+				embedding_text = format_embedding(embedding, max_length=None)
+				candidate_text = _format_candidate_set_text(bundle.get("candidate_set"))
+
+				feature_mask = bundle.get("explanation_mask", {}).get("feature_mask")
+				if feature_mask is None:
+					explanation_text = "No explanation feature mask available."
+				else:
+					try:
+						mask_src = feature_mask
+						# Prefer a per-target-node feature vector if provided as [num_nodes, num_features].
+						if hasattr(mask_src, "ndim") and int(getattr(mask_src, "ndim", 1)) > 1:
+							target_idx = int(record.get("target_node", 0) or 0)
+							shape = getattr(mask_src, "shape", None)
+							if shape is not None and 0 <= target_idx < int(shape[0]):
+								mask_src = mask_src[target_idx]
+							elif hasattr(mask_src, "reshape"):
+								mask_src = mask_src.reshape(-1)
+						mask = torch.tensor(mask_src)
+						if mask.ndim > 1:
+							mask = mask.reshape(-1)
+						explanation_text = format_explanation(mask)
+					except Exception:
+						explanation_text = "No explanation feature mask available."
+
+				prompt = (
+					"You are given a target node embedding and a non-structural explanation (feature-importance mask) of a GNN decision.\n"
+					"Select which candidate nodes are directly connected (1-hop neighbors) to the target node.\n\n"
+					f"Explanation (non-subgraph):\n{explanation_text}\n\n"
+					f"Embedding:\n{embedding_text}\n\n"
+					f"Candidate set (node ids):\n{candidate_text}\n\n"
+					"Return a JSON object exactly in this format:\n"
+					'{"selected_neighbors": [<ids>], "confidence": <float>}\n'
+					"Do not output anything else."
+				)
+				prompts.append(prompt)
+			if not llm_names:
+				raise ValueError("LLM list is empty for reconstruction_1hop_embed_expl experiment.")
+			predictions = run_inference_all(llm_names, prompts, device, parse_predictions=False, **generation_cfg)
+			outputs[experiment] = {"prompts": prompts, "predictions": predictions}
+			continue
+
+		if experiment == "reconstruction_1hop_no_gnn":
+			prompts = []
+			for record in extraction_records:
+				bundle = record["bundle"]
+				candidate_text = _format_candidate_set_text(bundle.get("candidate_set"))
+				prompt = (
+					"You are given a candidate set of node ids.\n"
+					"Select which candidate nodes are directly connected (1-hop neighbors) to the target node.\n\n"
+					f"Target node id: {int(record.get('target_node', 0) or 0)}\n\n"
+					f"Candidate set (node ids):\n{candidate_text}\n\n"
+					"Return a JSON object exactly in this format:\n"
+					'{"selected_neighbors": [<ids>], "confidence": <float>}\n'
+					"Do not output anything else."
+				)
+				prompts.append(prompt)
+			if not llm_names:
+				raise ValueError("LLM list is empty for reconstruction_1hop_no_gnn experiment.")
+			predictions = run_inference_all(llm_names, prompts, device, parse_predictions=False, **generation_cfg)
 			outputs[experiment] = {"prompts": prompts, "predictions": predictions}
 			continue
 
@@ -1075,9 +1159,20 @@ def run_llm_stage(config, extraction_records):
 	if not isinstance(generation_cfg, dict):
 		generation_cfg = {}
 
-	predictions = run_inference_all(llm_names, prompts, device, **generation_cfg)
+	predictions = run_inference_all(llm_names, prompts, device, return_raw=True, **generation_cfg)
 
 	return {"prompts": prompts, "predictions": predictions}
+
+
+def _split_llm_prediction_output(output):
+	"""Return (parsed_prediction, raw_response) from old or raw-preserving outputs."""
+	if isinstance(output, dict):
+		raw_response = output.get("raw_response")
+		parsed = output.get("parsed_prediction")
+		if parsed is None:
+			parsed = output.get("prediction", output.get("llm_pred", raw_response))
+		return parsed, raw_response
+	return output, None
 
 
 def run_evaluation_stage(config, extraction_records, llm_outputs):
@@ -1102,19 +1197,20 @@ def run_evaluation_stage(config, extraction_records, llm_outputs):
 					"Missing predicted_class in extraction record bundle: "
 					"expected record['bundle']['prediction']['predicted_class']."
 				)
-			llm_pred = llm_preds[idx]
-			comparisons.append(
-				{
-					"dataset": record["dataset"],
-					"model": record["model"],
-					"llm": llm_name,
-					"target_node": record["target_node"],
-					"target_class": prediction_bundle.get("target_class"),
-					"gnn_pred": gnn_pred,
-					"llm_pred": llm_pred,
-					"prompt": prompts[idx] if idx < len(prompts) else None,
-				}
-			)
+			llm_pred, llm_raw_response = _split_llm_prediction_output(llm_preds[idx])
+			row = {
+				"dataset": record["dataset"],
+				"model": record["model"],
+				"llm": llm_name,
+				"target_node": record["target_node"],
+				"target_class": prediction_bundle.get("target_class"),
+				"gnn_pred": gnn_pred,
+				"llm_pred": llm_pred,
+				"prompt": prompts[idx] if idx < len(prompts) else None,
+			}
+			if llm_raw_response is not None:
+				row["llm_raw_response"] = llm_raw_response
+			comparisons.append(row)
 
 	grouped = {}
 	for row in comparisons:
@@ -1152,22 +1248,29 @@ def run_evaluation_stage_experiments(config, extraction_records, experiment_outp
 				for idx, record in enumerate(extraction_records):
 					prediction_bundle = (record.get("bundle") or {}).get("prediction") or {}
 					gnn_pred = prediction_bundle.get("predicted_class")
-					llm_pred = llm_preds[idx] if idx < len(llm_preds) else None
-					comparisons.append(
-						{
-							"experiment": experiment,
-							"dataset": record["dataset"],
-							"model": record["model"],
-							"llm": llm_name,
-							"target_node": record["target_node"],
-							"target_class": prediction_bundle.get("target_class"),
-							"gnn_pred": gnn_pred,
-							"llm_pred": llm_pred,
-							"prompt": prompts[idx] if idx < len(prompts) else None,
-						}
-					)
+					llm_output = llm_preds[idx] if idx < len(llm_preds) else None
+					llm_pred, llm_raw_response = _split_llm_prediction_output(llm_output)
+					row = {
+						"experiment": experiment,
+						"dataset": record["dataset"],
+						"model": record["model"],
+						"llm": llm_name,
+						"target_node": record["target_node"],
+						"target_class": prediction_bundle.get("target_class"),
+						"gnn_pred": gnn_pred,
+						"llm_pred": llm_pred,
+						"prompt": prompts[idx] if idx < len(prompts) else None,
+					}
+					if llm_raw_response is not None:
+						row["llm_raw_response"] = llm_raw_response
+					comparisons.append(row)
 
-			if experiment == "reconstruction_1hop":
+			reconstruction_experiments = {
+				"reconstruction_1hop",
+				"reconstruction_1hop_embed_expl",
+				"reconstruction_1hop_no_gnn",
+			}
+			if experiment in reconstruction_experiments:
 				rows = []
 				for llm_name, llm_preds in predictions_by_llm.items():
 					for idx, record in enumerate(extraction_records):
@@ -1262,7 +1365,7 @@ def run_pipeline(config, args):
 	output_dir.mkdir(parents=True, exist_ok=True)
 
 	if merged.get("seed") is not None:
-		from Final_version.Train import set_seed
+		from Train import set_seed
 		set_seed(int(merged["seed"]))
 
 	state = {"config": merged, "stages": stages}

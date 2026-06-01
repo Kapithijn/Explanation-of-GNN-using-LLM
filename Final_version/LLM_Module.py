@@ -1,7 +1,6 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 import numpy as np
-from sklearn.decomposition import PCA
 from typing import Tuple, Dict, List, Optional, Any
 import re
 import json
@@ -47,6 +46,14 @@ def reduce_embedding(embedding, n_components: int):
     Returns:
         np.ndarray: Compressed embedding
     """
+    try:
+        from sklearn.decomposition import PCA
+    except ImportError as exc:
+        raise ImportError(
+            "Embedding reduction requires scikit-learn. Install scikit-learn "
+            "or leave embedding_max_length unset."
+        ) from exc
+
     if isinstance(embedding, torch.Tensor):
         embedding = embedding.cpu().numpy()
     
@@ -234,11 +241,39 @@ def generate_response(model, tokenizer, prompt: str, device: str, **gen_kwargs):
     Returns:
         str: Generated response text (decoded output)
     """
-    inputs = tokenizer(prompt, return_tensors="pt")
-    input_ids = inputs["input_ids"].to(device)
-    attention_mask = inputs.get("attention_mask")
-    if attention_mask is not None:
-        attention_mask = attention_mask.to(device)
+    # For instruct/chat-tuned models (e.g., Qwen-Instruct), wrapping the prompt
+    # in the tokenizer's chat template is essential for predictable behavior.
+    inputs = None
+    if hasattr(tokenizer, "apply_chat_template") and getattr(tokenizer, "chat_template", None):
+        messages = [{"role": "user", "content": prompt}]
+        try:
+            inputs = tokenizer.apply_chat_template(
+                messages,
+                tokenize=True,
+                add_generation_prompt=True,
+                return_tensors="pt",
+            )
+        except Exception:
+            # Compatibility fallback for older/different transformers signatures.
+            try:
+                formatted_prompt = tokenizer.apply_chat_template(
+                    messages,
+                    tokenize=False,
+                    add_generation_prompt=True,
+                )
+                inputs = tokenizer(formatted_prompt, return_tensors="pt")
+            except Exception:
+                inputs = None
+    if inputs is None:
+        inputs = tokenizer(prompt, return_tensors="pt")
+    if isinstance(inputs, torch.Tensor):
+        input_ids = inputs.to(device)
+        attention_mask = None
+    else:
+        input_ids = inputs["input_ids"].to(device)
+        attention_mask = inputs.get("attention_mask")
+        if attention_mask is not None:
+            attention_mask = attention_mask.to(device)
 
     generation_kwargs = dict(gen_kwargs)
     if "max_new_tokens" not in generation_kwargs and "max_length" not in generation_kwargs:
@@ -337,23 +372,132 @@ def parse_prediction(response: str):
     if response is None:
         return "Unknown"
 
-    text = response.strip()
+    text = str(response).strip()
+    if not text:
+        return "Unknown"
 
-    match = re.search(r"predicted\s+class\s+is\s+([0-9]+)", text, re.IGNORECASE)
-    if match:
-        return int(match.group(1))
+    def _clean_markup(value: str) -> str:
+        value = value.strip()
+        value = re.sub(r"^```(?:\w+)?\s*", "", value, flags=re.IGNORECASE)
+        value = re.sub(r"\s*```$", "", value)
+        value = value.strip().strip("`").strip()
+        value = re.sub(r"\*+", "", value)
+        return value.strip()
 
-    match = re.search(r"\bclass\b[^0-9]*([0-9]+)", text, re.IGNORECASE)
-    if match:
-        return int(match.group(1))
+    def _label_to_int(value: Any) -> Optional[int]:
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int):
+            return value if value in (0, 1) else None
+        if isinstance(value, float):
+            return int(value) if value in (0.0, 1.0) else None
 
-    match = re.search(r"\b([0-9]+)\b", text)
-    if match:
-        return int(match.group(1))
+        cleaned = _clean_markup(str(value)).strip().lower()
+        cleaned = cleaned.strip(" \t\r\n\"'.,;:()[]{}_*")
+        if cleaned in {"0", "0.0"}:
+            return 0
+        if cleaned in {"1", "1.0"}:
+            return 1
+        if cleaned in {"licit", "negative", "normal", "benign"}:
+            return 0
+        if cleaned in {"illicit", "positive", "suspicious", "fraud", "fraudulent"}:
+            return 1
+        return None
 
-    match = re.search(r"predicted\s+class\s+is\s+([A-Za-z_]+)", text, re.IGNORECASE)
-    if match:
-        return match.group(1)
+    def _parse_json_candidate(candidate: str) -> Optional[int]:
+        cleaned = _clean_markup(candidate)
+        try:
+            payload = json.loads(cleaned)
+        except Exception:
+            return None
+
+        if isinstance(payload, dict):
+            for key in ("predicted_class", "prediction", "predicted", "label", "class", "answer"):
+                if key in payload:
+                    parsed = _label_to_int(payload[key])
+                    if parsed is not None:
+                        return parsed
+        elif isinstance(payload, (int, float, str)) and not isinstance(payload, bool):
+            return _label_to_int(payload)
+        return None
+
+    json_candidates = [text]
+    json_candidates.extend(
+        match.group(1)
+        for match in re.finditer(r"```(?:json)?\s*(.*?)```", text, flags=re.IGNORECASE | re.DOTALL)
+    )
+    json_candidates.extend(
+        match.group(0)
+        for match in re.finditer(r"\{[^{}]*\}", text, flags=re.DOTALL)
+    )
+    for candidate in json_candidates:
+        parsed = _parse_json_candidate(candidate)
+        if parsed is not None:
+            return parsed
+
+    # Prefer the tail of the response. This keeps prompt echoes/examples from
+    # dominating if a model repeats context before giving the final answer.
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    candidates = []
+    if lines:
+        candidates.append(lines[-1])
+        candidates.append("\n".join(lines[-2:]))
+        candidates.append("\n".join(lines[-5:]))
+
+    marker_matches = list(
+        re.finditer(
+            r"(?:^|\n)\s*(?:assistant|final\s+answer|answer)\s*[:\n]\s*(.*)$",
+            text,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+    )
+    if marker_matches:
+        candidates.append(marker_matches[-1].group(1))
+    candidates.append(text[-1200:])
+
+    def _parse_binary_from(candidate: str) -> Optional[int]:
+        cleaned = _clean_markup(candidate)
+        direct = _label_to_int(cleaned)
+        if direct is not None:
+            return direct
+
+        label_token = (
+            r"([`*_\"']*(?:[01](?:\.0+)?|licit|illicit|positive|negative|"
+            r"normal|benign|suspicious|fraudulent|fraud)[`*_\"']*)"
+        )
+        relation = r"(?:\s+(?:is|as|would\s+be|should\s+be))?\s*(?:=|:|->|-)?\s*"
+        patterns = [
+            rf"\b(?:the\s+)?predicted[_\s-]*class\b{relation}{label_token}",
+            rf"\b(?:the\s+)?class\b{relation}{label_token}",
+            rf"\b(?:the\s+)?(?:answer|prediction|label|classification)\b{relation}{label_token}",
+            rf"\b(?:my\s+)?(?:choice|prediction)\b{relation}{label_token}",
+            rf"\b(?:i\s+)?(?:choose|pick|select|predict)\s+(?:class\s+)?{label_token}\b",
+            rf"\b(?:i\s+)?(?:classify|label)\s+(?:it|this|the\s+transaction|the\s+node)?\s*(?:as\s+)?{label_token}\b",
+            rf"\bX\b{relation}{label_token}",
+            rf"\b(?:it|transaction|node)\s+(?:is|appears\s+to\s+be|looks)\s+{label_token}",
+            rf"(?:^|\n)\s*(?:[-*]\s*)?{label_token}\s*(?:\([^)]*\))?\s*\.?\s*$",
+        ]
+
+        for pattern in patterns:
+            matches = list(re.finditer(pattern, cleaned, flags=re.IGNORECASE))
+            for match in reversed(matches):
+                parsed = _label_to_int(match.group(1))
+                if parsed is not None:
+                    return parsed
+
+        return None
+
+    seen = set()
+    for candidate in candidates:
+        if not candidate:
+            continue
+        key = candidate.strip()
+        if key in seen:
+            continue
+        seen.add(key)
+        parsed = _parse_binary_from(candidate)
+        if parsed is not None:
+            return parsed
 
     return "Unknown"
 
@@ -377,7 +521,14 @@ def get_prediction_for_target(model, tokenizer, prompt: str, device: str, **gen_
     return parse_prediction(response)
 
 
-def run_inference_all(model_names: List[str], prompts: List[str], device: str, **gen_kwargs):
+def run_inference_all(
+    model_names: List[str],
+    prompts: List[str],
+    device: str,
+    parse_predictions: bool = True,
+    return_raw: bool = False,
+    **gen_kwargs,
+):
     """
     Run inference across multiple LLMs and prompts.
     For each LLM: load model, run all prompts, collect results, then clean up GPU.
@@ -390,6 +541,10 @@ def run_inference_all(model_names: List[str], prompts: List[str], device: str, *
     Returns:
         Dict[str, List]: Results organized by model name, e.g.,
                         {"Qwen/Qwen-7B": [pred1, pred2, ...], "meta-llama/Llama-2-7b": [...]}
+        parse_predictions: If True, parse each response as a binary
+                           classification label. If False, return raw text.
+        return_raw: When parsing predictions, return a dict containing both
+                    the raw LLM response and the parsed prediction.
     """
     print(f"Running inference on device: {device}")
 
@@ -409,8 +564,19 @@ def run_inference_all(model_names: List[str], prompts: List[str], device: str, *
         tokenizer, model = load_llm(model_name, device)
         predictions = []
         for prompt in prompts:
-            pred = get_prediction_for_target(model, tokenizer, prompt, device, **gen_kwargs)
-            predictions.append(pred)
+            if parse_predictions:
+                response = generate_response(model, tokenizer, prompt, device, **gen_kwargs)
+                parsed = parse_prediction(response)
+                if return_raw:
+                    result = {
+                        "raw_response": response,
+                        "parsed_prediction": parsed,
+                    }
+                else:
+                    result = parsed
+            else:
+                result = generate_response(model, tokenizer, prompt, device, **gen_kwargs)
+            predictions.append(result)
 
             completed += 1
             if progress_bar is not None:
@@ -433,4 +599,3 @@ def run_inference_all(model_names: List[str], prompts: List[str], device: str, *
     if progress_bar is not None:
         progress_bar.close()
     return results
-

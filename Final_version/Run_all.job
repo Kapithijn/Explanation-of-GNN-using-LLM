@@ -1,0 +1,180 @@
+# Patched Run_all.job for Snellius
+
+```bash
+#!/bin/bash
+#SBATCH --job-name=gnn_llm_pipeline
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=1
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=64G
+#SBATCH --time=08:00:00
+#SBATCH --array=0-4
+#SBATCH --output=logs/slurm_%A_%a.out
+#SBATCH --error=logs/slurm_%A_%a.err
+
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=thijn@example.com
+
+set -euo pipefail
+
+###############################################################################
+# Environment setup
+###############################################################################
+
+module purge
+module load 2025
+module load Miniconda3/25.5.1-1
+
+source "$HOME/miniconda3/etc/profile.d/conda.sh"
+conda activate ethfraud_clean
+
+###############################################################################
+# Paths
+###############################################################################
+
+PROJECT_DIR="/scratch-shared/$USER/Explanation-of-GNN-using-LLM"
+cd "$PROJECT_DIR"
+
+mkdir -p logs
+mkdir -p outputs
+mkdir -p hf_cache
+
+###############################################################################
+# HuggingFace cache setup
+###############################################################################
+
+export HF_HOME="$PROJECT_DIR/hf_cache"
+export TRANSFORMERS_CACHE="$PROJECT_DIR/hf_cache"
+export HF_HUB_ENABLE_HF_TRANSFER=1
+
+# Optional: uncomment if you have a HuggingFace token
+# export HF_TOKEN="your_token_here"
+
+###############################################################################
+# Threading / performance settings
+###############################################################################
+
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+export MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK
+export NUMEXPR_NUM_THREADS=$SLURM_CPUS_PER_TASK
+export TOKENIZERS_PARALLELISM=false
+
+###############################################################################
+# LLM selection via SLURM array
+###############################################################################
+
+LLMS=(
+    "Qwen/Qwen2.5-3B"
+    "Qwen/Qwen3.5-4B"
+    "Qwen/Qwen3.5-9B"
+    "Qwen/Qwen3.5-27B"
+    "Qwen/Qwen3.5-35B-A3B"
+)
+
+LLM_MODEL=${LLMS[$SLURM_ARRAY_TASK_ID]}
+
+###############################################################################
+# Experimental configuration
+###############################################################################
+
+CONFIG_PATH="local_test.json"
+
+if [ ! -f "$CONFIG_PATH" ]; then
+    echo "ERROR: Missing config file: $CONFIG_PATH"
+    exit 1
+fi
+
+# Conservative settings for stability/testing
+NUM_RUNS=1
+NUM_TARGET_NODES=20
+EXPLAINER_WORKERS=2
+
+DATASETS=(
+    "elliptic"
+)
+
+MODELS=(
+    "GraphSAGE"
+)
+
+###############################################################################
+# Dataset validation
+###############################################################################
+
+# DGraphFin requires manual placement of the zip archive.
+# Uncomment if using DGraphFin.
+#
+# DGRAPH_PATH="Final_version/data/dgraphfin_dataset/raw/DGraphFin.zip"
+# if [ ! -f "$DGRAPH_PATH" ]; then
+#     echo "ERROR: Missing DGraphFin dataset archive: $DGRAPH_PATH"
+#     exit 1
+# fi
+
+###############################################################################
+# Diagnostics
+###############################################################################
+
+echo "============================================================"
+echo "Job started at: $(date)"
+echo "Node: $(hostname)"
+echo "GPU information:"
+nvidia-smi
+echo "============================================================"
+
+echo "Python executable: $(which python)"
+python --version
+
+echo "============================================================"
+echo "Selected LLM: $LLM_MODEL"
+echo "Datasets: ${DATASETS[*]}"
+echo "Models: ${MODELS[*]}"
+echo "Runs: $NUM_RUNS"
+echo "Target nodes: $NUM_TARGET_NODES"
+echo "Explainer workers: $EXPLAINER_WORKERS"
+echo "============================================================"
+
+###############################################################################
+# Main execution
+###############################################################################
+
+python Final_version/main.py \
+    --config "$CONFIG_PATH" \
+    --datasets "${DATASETS[@]}" \
+    --models "${MODELS[@]}" \
+    --llm-model "$LLM_MODEL" \
+    --num-runs "$NUM_RUNS" \
+    --num-target-nodes "$NUM_TARGET_NODES" \
+    --explainer-workers "$EXPLAINER_WORKERS"
+
+###############################################################################
+# Completion
+###############################################################################
+
+echo "============================================================"
+echo "Job completed at: $(date)"
+echo "============================================================"
+```
+
+## Submit command
+
+```bash
+sbatch Run_all.job
+```
+
+## Monitor jobs
+
+```bash
+squeue -u $USER
+```
+
+## Monitor logs live
+
+```bash
+tail -f logs/slurm_<JOBID>_<ARRAYID>.err
+```
+
+## Cancel all array jobs
+
+```bash
+scancel <JOBID>
+```

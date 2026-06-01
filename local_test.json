@@ -1,0 +1,26 @@
+{
+  "output_dir": "outputs",
+  "datasets": ["elliptic"],
+  "models": ["GAT"],
+  "llms": ["Qwen/Qwen2.5-0.5B-Instruct"],
+  "experiments": [
+    "raw_graph_reasoning",
+    "embedding_classification",
+    "reconstruction_1hop",
+    "reconstruction_1hop_embed_expl",
+    "reconstruction_1hop_no_gnn",
+    "baseline_random",
+    "baseline_cosine",
+    "baseline_feature"
+  ],
+  "num_target_nodes": 20,
+  "target_node_pool": "test",
+  "target_node_sampling": "random",
+  "num_hops": 2,
+  "reconstruction": {
+    "candidate_ratio": 4
+  },
+  "generation": {
+    "max_new_tokens": 64
+  }
+}

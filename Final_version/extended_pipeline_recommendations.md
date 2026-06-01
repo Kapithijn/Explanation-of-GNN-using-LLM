@@ -46,6 +46,32 @@ The extended pipeline supports multiple research directions:
 
 ---
 
+# Experiment → Output Mapping (What appears in `outputs/`)
+
+The experiments needed for the thesis map to the current pipeline experiment keys (from `config["experiments"]`) and the JSON files written to `outputs/` as follows.
+
+| Thesis experiment (concept) | Pipeline experiment key | Raw output JSON | Summary output JSON |
+|---|---|---|---|
+| **DATA → LLM → class (0/1)** (raw graph) | `raw_graph_reasoning` | `outputs/results_raw_raw_graph_reasoning.json` | `outputs/results_summary_raw_graph_reasoning.json` |
+| **DATA → GNN → LLM → class (0/1)** (GNN-assisted classification) | `embedding_classification` | `outputs/results_raw_embedding_classification.json` | `outputs/results_summary_embedding_classification.json` |
+| **DATA → GNN (embedding) → LLM → reconstruct 1-hop neighbors** | `reconstruction_1hop` | `outputs/results_raw_reconstruction_1hop.json` | `outputs/results_summary_reconstruction_1hop.json` |
+| **DATA → GNN (embedding + non-subgraph explanation) → LLM → reconstruct 1-hop neighbors** | `reconstruction_1hop_embed_expl` *(added)* | `outputs/results_raw_reconstruction_1hop_embed_expl.json` | `outputs/results_summary_reconstruction_1hop_embed_expl.json` |
+| **DATA → (no GNN info) → LLM → reconstruct 1-hop neighbors** (LLM-only reconstruction baseline) | `reconstruction_1hop_no_gnn` *(added)* | `outputs/results_raw_reconstruction_1hop_no_gnn.json` | `outputs/results_summary_reconstruction_1hop_no_gnn.json` |
+
+Notes:
+- `raw_graph_reasoning` currently produces `results_raw_raw_graph_reasoning.json` (double “raw”) because the filename is `results_raw_{experiment}.json`.
+- Reconstruction experiments write *set-based neighbor metrics* (precision/recall/F1/Jaccard/overlap/edit-distance), not classification accuracy.
+- Structural (non-LLM) reconstruction baselines are written as:
+        - `baseline_random` → `outputs/results_raw_baseline_random.json`, `outputs/results_summary_baseline_random.json`
+            - Definition: randomly select `k` nodes from the candidate set as “predicted neighbors” (a pure chance baseline). `k` is set to the number of true neighbors when available; otherwise a small heuristic is used.
+        - `baseline_cosine` → `outputs/results_raw_baseline_cosine.json`, `outputs/results_summary_baseline_cosine.json`
+            - Definition: rank candidates by cosine similarity between the target node embedding and each candidate’s feature vector, then return the top-`k`.
+            - Practical note: this baseline only works when feature vectors are available for the candidate ids (otherwise those ids are skipped).
+        - `baseline_feature` → `outputs/results_raw_baseline_feature.json`, `outputs/results_summary_baseline_feature.json`
+            - Definition: rank candidates by Euclidean distance between the target node’s raw feature vector and each candidate’s feature vector, then return the closest `k`.
+
+---
+
 # Core Architectural Change
 
 The original pipeline followed a mostly linear structure:

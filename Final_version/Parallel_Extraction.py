@@ -18,7 +18,7 @@ def _stable_kwargs_key(kwargs):
 
 def _load_data_cached(dataset_name, dataset_kwargs, device):
 	"""Load and preprocess the dataset once per worker process."""
-	from Final_version.Data_File import load_dataset, preprocess
+	from Data_File import load_dataset, preprocess
 
 	device_key = str(device) if device is not None else "cpu"
 	key = f"{dataset_name}|{_stable_kwargs_key(dataset_kwargs)}|{device_key}"
@@ -37,7 +37,7 @@ def _load_data_cached(dataset_name, dataset_kwargs, device):
 
 def _load_model_cached(model_name, model_config, state_dict_path, device):
 	"""Build the model architecture and load weights once per worker process."""
-	from Final_version.GNN_Definition import build_model_bundle
+	from GNN_Definition import build_model_bundle
 
 	device_key = str(device) if device is not None else "cpu"
 	key = (model_name, state_dict_path, device_key)
@@ -91,9 +91,9 @@ def extract_one(
 	data = _load_data_cached(dataset_name, dataset_kwargs, torch_device)
 	model = _load_model_cached(model_name, model_config, state_dict_path, torch_device)
 
-	from Final_version.Extracion import extract_all
+	from Extracion import extract_all
 
-	bundle = extract_all(model, data, int(node_id), num_hops=int(num_hops))
+	bundle = extract_all(model, data, int(node_id), num_hops=int(num_hops), include_candidate_set=False)
 	return {
 		"dataset": dataset_name,
 		"model": model_name,
