@@ -227,54 +227,8 @@ def load_llm(
     return tokenizer, model
 
 
-def generate_response(model, tokenizer, prompt: str, device: str, **gen_kwargs):
-    """
-    Tokenize prompt, run LLM generation, and decode output.
-    
-    Args:
-        model: Loaded AutoModelForCausalLM model
-        tokenizer: Loaded AutoTokenizer
-        prompt: Input prompt string
-        device: Device model is on
-        **gen_kwargs: Additional kwargs for model.generate() (e.g., max_new_tokens=50)
-    
-    Returns:
-        str: Generated response text (decoded output)
-    """
-    # For instruct/chat-tuned models (e.g., Qwen-Instruct), wrapping the prompt
-    # in the tokenizer's chat template is essential for predictable behavior.
-    inputs = None
-    if hasattr(tokenizer, "apply_chat_template") and getattr(tokenizer, "chat_template", None):
-        messages = [{"role": "user", "content": prompt}]
-        try:
-            inputs = tokenizer.apply_chat_template(
-                messages,
-                tokenize=True,
-                add_generation_prompt=True,
-                return_tensors="pt",
-            )
-        except Exception:
-            # Compatibility fallback for older/different transformers signatures.
-            try:
-                formatted_prompt = tokenizer.apply_chat_template(
-                    messages,
-                    tokenize=False,
-                    add_generation_prompt=True,
-                )
-                inputs = tokenizer(formatted_prompt, return_tensors="pt")
-            except Exception:
-                inputs = None
-    if inputs is None:
-        inputs = tokenizer(prompt, return_tensors="pt")
-    if isinstance(inputs, torch.Tensor):
-        input_ids = inputs.to(device)
-        attention_mask = None
-    else:
-        input_ids = inputs["input_ids"].to(device)
-        attention_mask = inputs.get("attention_mask")
-        if attention_mask is not None:
-            attention_mask = attention_mask.to(device)
-
+def _prepare_generation_kwargs(tokenizer, gen_kwargs):
+    """Normalize generation kwargs shared by single and batched inference."""
     generation_kwargs = dict(gen_kwargs)
     if "max_new_tokens" not in generation_kwargs and "max_length" not in generation_kwargs:
         generation_kwargs["max_new_tokens"] = 64
@@ -316,8 +270,13 @@ def generate_response(model, tokenizer, prompt: str, device: str, **gen_kwargs):
             if top_k_value < 0:
                 generation_kwargs["top_k"] = 0
 
+    return generation_kwargs
+
+
+def _generate_with_sampling_fallback(model, input_ids, attention_mask, generation_kwargs):
+    """Run model.generate and retry greedily if sampling creates invalid probabilities."""
     try:
-        output_ids = model.generate(
+        return model.generate(
             input_ids=input_ids,
             attention_mask=attention_mask,
             **generation_kwargs,
@@ -348,15 +307,132 @@ def generate_response(model, tokenizer, prompt: str, device: str, **gen_kwargs):
             "eta_cutoff",
         ]:
             safe_kwargs.pop(key, None)
-        output_ids = model.generate(
+        return model.generate(
             input_ids=input_ids,
             attention_mask=attention_mask,
             **safe_kwargs,
         )
 
+
+def _format_prompt_for_generation(tokenizer, prompt: str):
+    """Apply chat template as text so prompts can be batch-tokenized."""
+    if hasattr(tokenizer, "apply_chat_template") and getattr(tokenizer, "chat_template", None):
+        messages = [{"role": "user", "content": prompt}]
+        try:
+            formatted = tokenizer.apply_chat_template(
+                messages,
+                tokenize=False,
+                add_generation_prompt=True,
+            )
+            if isinstance(formatted, str):
+                return formatted
+        except Exception:
+            pass
+    return prompt
+
+
+def generate_response(model, tokenizer, prompt: str, device: str, **gen_kwargs):
+    """
+    Tokenize prompt, run LLM generation, and decode output.
+
+    Args:
+        model: Loaded AutoModelForCausalLM model
+        tokenizer: Loaded AutoTokenizer
+        prompt: Input prompt string
+        device: Device model is on
+        **gen_kwargs: Additional kwargs for model.generate() (e.g., max_new_tokens=50)
+
+    Returns:
+        str: Generated response text (decoded output)
+    """
+    # For instruct/chat-tuned models (e.g., Qwen-Instruct), wrapping the prompt
+    # in the tokenizer's chat template is essential for predictable behavior.
+    inputs = None
+    if hasattr(tokenizer, "apply_chat_template") and getattr(tokenizer, "chat_template", None):
+        messages = [{"role": "user", "content": prompt}]
+        try:
+            inputs = tokenizer.apply_chat_template(
+                messages,
+                tokenize=True,
+                add_generation_prompt=True,
+                return_tensors="pt",
+            )
+        except Exception:
+            # Compatibility fallback for older/different transformers signatures.
+            try:
+                formatted_prompt = tokenizer.apply_chat_template(
+                    messages,
+                    tokenize=False,
+                    add_generation_prompt=True,
+                )
+                inputs = tokenizer(formatted_prompt, return_tensors="pt")
+            except Exception:
+                inputs = None
+    if inputs is None:
+        inputs = tokenizer(prompt, return_tensors="pt")
+    if isinstance(inputs, torch.Tensor):
+        input_ids = inputs.to(device)
+        attention_mask = None
+    else:
+        input_ids = inputs["input_ids"].to(device)
+        attention_mask = inputs.get("attention_mask")
+        if attention_mask is not None:
+            attention_mask = attention_mask.to(device)
+
+    generation_kwargs = _prepare_generation_kwargs(tokenizer, gen_kwargs)
+    output_ids = _generate_with_sampling_fallback(
+        model,
+        input_ids=input_ids,
+        attention_mask=attention_mask,
+        generation_kwargs=generation_kwargs,
+    )
+
     generated_ids = output_ids[0, input_ids.shape[-1]:]
     response = tokenizer.decode(generated_ids, skip_special_tokens=True)
     return response.strip()
+
+
+def generate_responses_batch(model, tokenizer, prompts: List[str], device: str, **gen_kwargs):
+    """Generate responses for a prompt batch using one model.generate call."""
+    if not prompts:
+        return []
+    if len(prompts) == 1:
+        return [generate_response(model, tokenizer, prompts[0], device, **gen_kwargs)]
+
+    formatted_prompts = [_format_prompt_for_generation(tokenizer, prompt) for prompt in prompts]
+
+    old_padding_side = getattr(tokenizer, "padding_side", None)
+    if hasattr(tokenizer, "padding_side"):
+        tokenizer.padding_side = "left"
+    try:
+        inputs = tokenizer(formatted_prompts, return_tensors="pt", padding=True)
+    finally:
+        if old_padding_side is not None and hasattr(tokenizer, "padding_side"):
+            tokenizer.padding_side = old_padding_side
+
+    if isinstance(inputs, torch.Tensor):
+        input_ids = inputs.to(device)
+        attention_mask = None
+    else:
+        input_ids = inputs["input_ids"].to(device)
+        attention_mask = inputs.get("attention_mask")
+        if attention_mask is not None:
+            attention_mask = attention_mask.to(device)
+
+    generation_kwargs = _prepare_generation_kwargs(tokenizer, gen_kwargs)
+    output_ids = _generate_with_sampling_fallback(
+        model,
+        input_ids=input_ids,
+        attention_mask=attention_mask,
+        generation_kwargs=generation_kwargs,
+    )
+
+    prompt_width = input_ids.shape[-1]
+    responses = []
+    for row_idx in range(output_ids.shape[0]):
+        generated_ids = output_ids[row_idx, prompt_width:]
+        responses.append(tokenizer.decode(generated_ids, skip_special_tokens=True).strip())
+    return responses
 
 
 def parse_prediction(response: str):
@@ -517,8 +593,14 @@ def get_prediction_for_target(model, tokenizer, prompt: str, device: str, **gen_
     Returns:
         str or int: Parsed class label
     """
+    gen_kwargs.pop("return_raw", None)
     response = generate_response(model, tokenizer, prompt, device, **gen_kwargs)
     return parse_prediction(response)
+
+
+def _is_cuda_oom(exc: RuntimeError):
+    message = str(exc).lower()
+    return "out of memory" in message or "cuda oom" in message
 
 
 def run_inference_all(
@@ -547,6 +629,17 @@ def run_inference_all(
                     the raw LLM response and the parsed prediction.
     """
     print(f"Running inference on device: {device}")
+    gen_kwargs.pop("return_raw", None)
+    gen_kwargs.pop("parse_predictions", None)
+    llm_batch_size = gen_kwargs.pop("llm_batch_size", None)
+    if llm_batch_size is None:
+        llm_batch_size = gen_kwargs.pop("batch_size", 1)
+    try:
+        llm_batch_size = max(1, int(llm_batch_size))
+    except Exception:
+        llm_batch_size = 1
+    if llm_batch_size > 1:
+        print(f"LLM batch size: {llm_batch_size}")
 
     try:
         from tqdm.auto import tqdm  # type: ignore
@@ -563,32 +656,53 @@ def run_inference_all(
     for model_name in model_names:
         tokenizer, model = load_llm(model_name, device)
         predictions = []
-        for prompt in prompts:
-            if parse_predictions:
-                response = generate_response(model, tokenizer, prompt, device, **gen_kwargs)
-                parsed = parse_prediction(response)
-                if return_raw:
-                    result = {
-                        "raw_response": response,
-                        "parsed_prediction": parsed,
-                    }
+        for start in range(0, len(prompts), llm_batch_size):
+            prompt_batch = prompts[start:start + llm_batch_size]
+            try:
+                if llm_batch_size > 1:
+                    responses = generate_responses_batch(model, tokenizer, prompt_batch, device, **gen_kwargs)
                 else:
-                    result = parsed
-            else:
-                result = generate_response(model, tokenizer, prompt, device, **gen_kwargs)
-            predictions.append(result)
+                    responses = [
+                        generate_response(model, tokenizer, prompt_batch[0], device, **gen_kwargs)
+                    ]
+            except RuntimeError as exc:
+                if llm_batch_size <= 1 or device != "cuda" or not _is_cuda_oom(exc):
+                    raise
+                print(
+                    "Warning: CUDA out-of-memory during batched LLM inference. "
+                    "Retrying this batch one prompt at a time."
+                )
+                torch.cuda.empty_cache()
+                responses = [
+                    generate_response(model, tokenizer, prompt, device, **gen_kwargs)
+                    for prompt in prompt_batch
+                ]
 
-            completed += 1
-            if progress_bar is not None:
-                progress_bar.set_postfix_str(model_name)
-                progress_bar.update(1)
-            else:
-                # Fallback progress indicator (prints ~20 times max).
-                if total > 0:
-                    step = max(1, total // 20)
-                    if completed == 1 or completed % step == 0 or completed == total:
-                        pct = 100.0 * completed / total
-                        print(f"LLM inference progress: {completed}/{total} ({pct:.1f}%)")
+            for response in responses:
+                if parse_predictions:
+                    parsed = parse_prediction(response)
+                    if return_raw:
+                        result = {
+                            "raw_response": response,
+                            "parsed_prediction": parsed,
+                        }
+                    else:
+                        result = parsed
+                else:
+                    result = response
+                predictions.append(result)
+
+                completed += 1
+                if progress_bar is not None:
+                    progress_bar.set_postfix_str(model_name)
+                    progress_bar.update(1)
+                else:
+                    # Fallback progress indicator (prints ~20 times max).
+                    if total > 0:
+                        step = max(1, total // 20)
+                        if completed == 1 or completed % step == 0 or completed == total:
+                            pct = 100.0 * completed / total
+                            print(f"LLM inference progress: {completed}/{total} ({pct:.1f}%)")
         results[model_name] = predictions
         del model
         del tokenizer

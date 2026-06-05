@@ -71,6 +71,8 @@ def extract_one(
 	device=None,
 	torch_num_threads=None,
 	seed=None,
+	explainer_top_k=5,
+	explainer_min_score=None,
 ):
 	"""Run extraction for a single (dataset, model, node) tuple.
 
@@ -93,7 +95,15 @@ def extract_one(
 
 	from Extracion import extract_all
 
-	bundle = extract_all(model, data, int(node_id), num_hops=int(num_hops), include_candidate_set=False)
+	bundle = extract_all(
+		model,
+		data,
+		int(node_id),
+		num_hops=int(num_hops),
+		include_candidate_set=False,
+		explainer_top_k=explainer_top_k,
+		explainer_min_score=explainer_min_score,
+	)
 	return {
 		"dataset": dataset_name,
 		"model": model_name,

@@ -36,9 +36,10 @@ The extended pipeline supports multiple research directions:
 4. Extract shared graph artifacts
 5. Run experiment branches
     a. Embedding classification
-    b. Raw graph reasoning
-    c. 1-hop subgraph reconstruction
-    d. Structural baselines
+    b. Embedding classification with explainer subgraph
+    c. Raw graph reasoning
+    d. 1-hop subgraph reconstruction
+    e. Structural baselines
 6. Evaluate experiment outputs
 7. Aggregate metrics across runs
 8. Save plots, tables, and serialized outputs
@@ -54,13 +55,16 @@ The experiments needed for the thesis map to the current pipeline experiment key
 |---|---|---|---|
 | **DATA → LLM → class (0/1)** (raw graph) | `raw_graph_reasoning` | `outputs/results_raw_raw_graph_reasoning.json` | `outputs/results_summary_raw_graph_reasoning.json` |
 | **DATA → GNN → LLM → class (0/1)** (GNN-assisted classification) | `embedding_classification` | `outputs/results_raw_embedding_classification.json` | `outputs/results_summary_embedding_classification.json` |
+| **DATA → GNN + GNNExplainer subgraph → LLM → class (0/1)** | `embedding_classification_explainer_subgraph` *(added)* | `outputs/results_raw_embedding_classification_explainer_subgraph.json` | `outputs/results_summary_embedding_classification_explainer_subgraph.json` |
 | **DATA → GNN (embedding) → LLM → reconstruct 1-hop neighbors** | `reconstruction_1hop` | `outputs/results_raw_reconstruction_1hop.json` | `outputs/results_summary_reconstruction_1hop.json` |
 | **DATA → GNN (embedding + non-subgraph explanation) → LLM → reconstruct 1-hop neighbors** | `reconstruction_1hop_embed_expl` *(added)* | `outputs/results_raw_reconstruction_1hop_embed_expl.json` | `outputs/results_summary_reconstruction_1hop_embed_expl.json` |
 | **DATA → (no GNN info) → LLM → reconstruct 1-hop neighbors** (LLM-only reconstruction baseline) | `reconstruction_1hop_no_gnn` *(added)* | `outputs/results_raw_reconstruction_1hop_no_gnn.json` | `outputs/results_summary_reconstruction_1hop_no_gnn.json` |
 
 Notes:
 - `raw_graph_reasoning` currently produces `results_raw_raw_graph_reasoning.json` (double “raw”) because the filename is `results_raw_{experiment}.json`.
+- `embedding_classification_explainer_subgraph` is a separate classification condition. It keeps the original embedding-classification condition comparable while testing whether a compact GNNExplainer-derived edge list improves LLM agreement with the GNN.
 - Reconstruction experiments write *set-based neighbor metrics* (precision/recall/F1/Jaccard/overlap/edit-distance), not classification accuracy.
+- Reconstruction experiments and structural baselines also write explainer-reference metrics with `_explainer.json` suffixes, for example `results_summary_reconstruction_1hop_explainer.json`. In those files, the reference set is the GNNExplainer-selected neighbor set rather than the graph's full true one-hop neighborhood.
 - Structural (non-LLM) reconstruction baselines are written as:
         - `baseline_random` → `outputs/results_raw_baseline_random.json`, `outputs/results_summary_baseline_random.json`
             - Definition: randomly select `k` nodes from the candidate set as “predicted neighbors” (a pure chance baseline). `k` is set to the number of true neighbors when available; otherwise a small heuristic is used.
@@ -91,6 +95,7 @@ Shared Extraction Layer
     ↓
 Experiment Branches
     ├── Embedding Classification
+    ├── Embedding Classification with Explainer Subgraph
     ├── Raw Graph Reasoning
     ├── Subgraph Reconstruction
     ├── Structural Baselines
@@ -114,6 +119,7 @@ LLM_Module.py
 
 experiments/
     embedding_classification.py
+    embedding_classification_explainer_subgraph.py
     raw_graph_reasoning.py
     subgraph_reconstruction.py
     baselines.py
@@ -256,6 +262,8 @@ Each extracted record should contain:
     "embedding_dimension": ...,
 
     "explanation_mask": ...,
+    "explainer_edges": ...,
+    "explainer_neighbors": ...,
 
     "k_hop_subgraph": ...,
     "one_hop_neighbors": ...,
@@ -329,6 +337,73 @@ Determine whether the LLM can reproduce or reason about GNN predictions.
 - accuracy
 - macro-F1
 - balanced accuracy
+
+---
+
+# Experiment A2 — Embedding Classification with Explainer Subgraph
+
+### File
+
+```text
+experiments/embedding_classification_explainer_subgraph.py
+```
+
+### Pipeline key
+
+```text
+embedding_classification_explainer_subgraph
+```
+
+### Goal
+
+Determine whether an explicit GNNExplainer-derived subgraph improves LLM agreement with the GNN compared with the original embedding-classification condition.
+
+### Inputs
+
+- embedding
+- explanation mask summary
+- compact explainer subgraph with node ids and important edges
+
+### Explainer Subgraph Construction
+
+The explainer subgraph is built from GNNExplainer edge scores:
+
+```text
+1. Rank edges by explainer importance.
+2. Normalize importance scores within each target-node explanation.
+3. Include edges with normalized importance >= 0.7.
+4. Cap the prompt to the top 5 selected edges.
+5. If no edge passes the threshold, keep the highest-scoring edge as a fallback.
+```
+
+The prompt therefore contains explicit graph structure such as:
+
+```text
+Explainer subgraph (normalized importance >= 0.70; fallback top 1):
+Nodes: 199342, 198399
+Edges:
+ - 199342 -> 198399 (importance=0.8123, normalized=1.0000)
+```
+
+### Outputs
+
+- LLM prediction
+- raw LLM response
+- parsed class label
+
+### Metrics
+
+- accuracy
+- precision
+- recall
+- F1
+- parse rate
+
+### Key Research Question
+
+```text
+Does adding explicit explainer-selected graph structure improve LLM reproduction of GNN predictions?
+```
 
 ---
 
@@ -625,16 +700,28 @@ models:
 
 experiments:
   - embedding_classification
+  - embedding_classification_explainer_subgraph
   - raw_graph_reasoning
   - reconstruction_1hop
-  - cosine_baseline
+  - reconstruction_1hop_embed_expl
+  - reconstruction_1hop_no_gnn
+  - baseline_random
+  - baseline_cosine
+  - baseline_feature
 
 reconstruction:
   hops: 1
   candidate_ratio: 4
+  explainer_top_k: 5
+  explainer_min_score: null
   include_explanation_mask: true
   include_node_features: true
   output_format: json
+
+prompt_explainer_subgraph:
+  normalized_importance_threshold: 0.7
+  top_k: 5
+  fallback_top_k: 1
 
 evaluation:
   num_runs: 5
@@ -678,9 +765,14 @@ Recommended structure:
 ```python
 EXPERIMENT_REGISTRY = {
     "embedding_classification": ...,
+    "embedding_classification_explainer_subgraph": ...,
     "raw_graph_reasoning": ...,
     "reconstruction_1hop": ...,
-    "cosine_baseline": ...
+    "reconstruction_1hop_embed_expl": ...,
+    "reconstruction_1hop_no_gnn": ...,
+    "baseline_random": ...,
+    "baseline_cosine": ...,
+    "baseline_feature": ...
 }
 ```
 
@@ -700,6 +792,7 @@ evaluate(...)
 The extended pipeline transforms the original linear workflow into a modular research framework capable of:
 
 - GNN-to-LLM reasoning experiments
+- explainer-subgraph classification experiments
 - raw graph reasoning experiments
 - topology reconstruction experiments
 - structural probing of embeddings

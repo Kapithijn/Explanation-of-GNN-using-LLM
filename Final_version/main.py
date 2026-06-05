@@ -63,8 +63,9 @@ def parse_args(argv=None):
 		default=None,
 		help=(
 			"Override experiment list. Valid values include embedding_classification, "
-			"raw_graph_reasoning, reconstruction_1hop, reconstruction_1hop_embed_expl, "
-			"reconstruction_1hop_no_gnn, baseline_random, baseline_cosine, and baseline_feature."
+			"embedding_classification_explainer_subgraph, raw_graph_reasoning, "
+			"reconstruction_1hop, reconstruction_1hop_embed_expl, reconstruction_1hop_no_gnn, "
+			"baseline_random, baseline_cosine, and baseline_feature."
 		),
 	)
 	parser.add_argument("--target-nodes", nargs="*", type=int, default=None, help="Override target node ids for extraction.")
@@ -90,6 +91,18 @@ def parse_args(argv=None):
 		help="How to select nodes from the pool when using --num-target-nodes.",
 	)
 	parser.add_argument("--num-hops", type=int, default=None, help="Override k for k-hop subgraph extraction.")
+	parser.add_argument(
+		"--max-new-tokens",
+		type=int,
+		default=None,
+		help="Override generation max_new_tokens for LLM responses.",
+	)
+	parser.add_argument(
+		"--llm-batch-size",
+		type=int,
+		default=None,
+		help="Number of prompts to generate per LLM batch (1 keeps sequential inference).",
+	)
 
 	parser.add_argument("--output-dir", type=str, default=None, help="Override output directory for artifacts/results.")
 	parser.add_argument("--device", choices=["auto", "cpu", "cuda", "mps"], default="auto", help="Device selection.")
@@ -187,8 +200,9 @@ def default_config():
 		"models": ["GAT"],  # subset of bundle keys or None for all
 		"llms": ["Qwen/Qwen2.5-0.5B-Instruct"],#Qwen/Qwen3.5-2B or Qwen/Qwen2.5-0.5B-Instruct Qwen2.5-3B-Instruct
 		"experiments": [
-			"embedding_classification",
-			# "raw_graph_reasoning",
+				"embedding_classification",
+				# "embedding_classification_explainer_subgraph",
+				# "raw_graph_reasoning",
 			# "reconstruction_1hop",
 			# "reconstruction_1hop_embed_expl",
 			# "reconstruction_1hop_no_gnn",
@@ -205,12 +219,19 @@ def default_config():
 		"raw_graph_reasoning": {
 			"condition": "raw_features_neighbors",
 		},
-		"reconstruction": {
-			"candidate_ratio": 4,
-			"include_explanation_mask": False,
-			"include_node_features": False,
-			"output_format": "json",
-		},
+			"reconstruction": {
+				"candidate_ratio": 4,
+				"explainer_top_k": 5,
+				"explainer_min_score": None,
+				"include_explanation_mask": False,
+				"include_node_features": False,
+				"output_format": "json",
+			},
+			"prompt_explainer_subgraph": {
+				"normalized_importance_threshold": 0.7,
+				"top_k": 5,
+				"fallback_top_k": 1,
+			},
 		"prompt": {
 			"template": (
 "You are helping compliance analysts understand and validate the prediction of a graph neural network (GNN) used for financial transaction fraud detection on a transaction graph.\n\n"
@@ -287,7 +308,8 @@ def default_config():
 			"patience": None,
 		},
 		"generation": {
-			"max_new_tokens": 64,
+			"max_new_tokens": 256,
+			"llm_batch_size": 1,
 		},
 		"large_graph_cpu_fallback": True,
 	}
@@ -317,6 +339,18 @@ def apply_cli_overrides(config, args):
 		config["target_node_sampling"] = str(args.target_node_sampling)
 	if args.num_hops is not None:
 		config["num_hops"] = int(args.num_hops)
+	if getattr(args, "max_new_tokens", None) is not None:
+		generation = config.get("generation")
+		if not isinstance(generation, dict):
+			generation = {}
+		generation["max_new_tokens"] = max(1, int(args.max_new_tokens))
+		config["generation"] = generation
+	if getattr(args, "llm_batch_size", None) is not None:
+		generation = config.get("generation")
+		if not isinstance(generation, dict):
+			generation = {}
+		generation["llm_batch_size"] = max(1, int(args.llm_batch_size))
+		config["generation"] = generation
 	if args.seed is not None:
 		config["seed"] = int(args.seed)
 	if getattr(args, "extract_workers", None) is not None and args.extract_workers is not None:
@@ -619,6 +653,9 @@ def run_extraction_stage(config, model_bundle, datasets):
 	workers = int(config.get("extract_workers", 1) or 1)
 	if workers < 1:
 		workers = 1
+	recon_cfg_for_extraction = config.get("reconstruction", {}) or {}
+	explainer_top_k = recon_cfg_for_extraction.get("explainer_top_k", 5)
+	explainer_min_score = recon_cfg_for_extraction.get("explainer_min_score")
 	if workers > 1:
 		requested_device = resolve_device(config.get("device"))
 		print(f"Parallel extraction enabled: {workers} worker process(es).")
@@ -660,7 +697,15 @@ def run_extraction_stage(config, model_bundle, datasets):
 							pct = 100.0 * completed / total
 							print(f"Extraction progress: {completed}/{total} ({pct:.1f}%)")
 
-					bundle = extract_all(model, data, node_id, num_hops=num_hops, include_candidate_set=False)
+					bundle = extract_all(
+						model,
+						data,
+						node_id,
+						num_hops=num_hops,
+						include_candidate_set=False,
+						explainer_top_k=explainer_top_k,
+						explainer_min_score=explainer_min_score,
+					)
 					recon_cfg = config.get("reconstruction", {}) or {}
 					candidate_ratio = recon_cfg.get("candidate_ratio", 4)
 					max_candidates = recon_cfg.get("max_candidates")
@@ -750,6 +795,8 @@ def run_extraction_stage(config, model_bundle, datasets):
 								device=device,
 								torch_num_threads=per_worker_threads,
 								seed=int(seed) if seed is not None else None,
+								explainer_top_k=explainer_top_k,
+								explainer_min_score=explainer_min_score,
 							)
 						)
 
@@ -801,6 +848,64 @@ def _format_subgraph_text(subgraph):
 		num_hops = subgraph.get("num_hops", "unknown")
 		return f"Subgraph (k={num_hops}) with {num_nodes} nodes and {num_edges} edges."
 	return str(subgraph)
+
+
+def _format_explainer_subgraph_text(
+	bundle,
+	normalized_importance_threshold=0.7,
+	top_k=5,
+	fallback_top_k=1,
+):
+	"""Format a compact GNNExplainer-derived subgraph for classification prompts."""
+	edges = list(bundle.get("explainer_edges") or [])
+	target_node = bundle.get("target_node")
+	if not edges:
+		neighbors = bundle.get("explainer_neighbors") or []
+		if not neighbors:
+			return "Explainer subgraph: no explainer-selected edges available."
+		nodes = sorted({int(v) for v in neighbors + ([target_node] if target_node is not None else [])})
+		return (
+			"Explainer subgraph: edge scores unavailable; using selected neighbor nodes only.\n"
+			f"Nodes: {', '.join(str(v) for v in nodes)}"
+		)
+
+	def edge_score(edge):
+		return (
+			float(edge.get("normalized_importance", 0.0) or 0.0),
+			float(edge.get("importance", 0.0) or 0.0),
+		)
+
+	edges.sort(key=edge_score, reverse=True)
+	threshold = float(normalized_importance_threshold)
+	selected = [edge for edge in edges if float(edge.get("normalized_importance", 0.0) or 0.0) >= threshold]
+	if not selected:
+		selected = edges[: max(1, int(fallback_top_k))]
+	if top_k is not None:
+		selected = selected[: max(0, int(top_k))]
+
+	if not selected:
+		return "Explainer subgraph: no explainer-selected edges available."
+
+	nodes = set()
+	for edge in selected:
+		nodes.add(int(edge.get("source")))
+		nodes.add(int(edge.get("target")))
+	if target_node is not None:
+		nodes.add(int(target_node))
+
+	lines = [
+		f"Explainer subgraph (normalized importance >= {threshold:.2f}; fallback top {int(fallback_top_k)}):",
+		"Nodes: " + ", ".join(str(v) for v in sorted(nodes)),
+		"Edges:",
+	]
+	for edge in selected:
+		lines.append(
+			" - "
+			f"{int(edge.get('source'))} -> {int(edge.get('target'))} "
+			f"(importance={float(edge.get('importance', 0.0) or 0.0):.4f}, "
+			f"normalized={float(edge.get('normalized_importance', 0.0) or 0.0):.4f})"
+		)
+	return "\n".join(lines)
 
 
 def _format_raw_features_text(raw_features):
@@ -957,6 +1062,43 @@ def run_experiment_stage(config, extraction_records):
 			outputs[experiment] = {"prompts": prompts, "predictions": predictions}
 			continue
 
+		if experiment == "embedding_classification_explainer_subgraph":
+			base_prompt_cfg = config.get("prompt", {})
+			prompt_cfg = config.get("prompt_explainer_subgraph", {}) or {}
+			template = prompt_cfg.get("template") or base_prompt_cfg.get(
+				"template",
+				"{explanation}\n{embedding}\n{subgraph}",
+			)
+			embedding_max_length = prompt_cfg.get(
+				"embedding_max_length",
+				base_prompt_cfg.get("embedding_max_length"),
+			)
+			normalized_threshold = prompt_cfg.get("normalized_importance_threshold", 0.7)
+			top_k = prompt_cfg.get("top_k", 5)
+			fallback_top_k = prompt_cfg.get("fallback_top_k", 1)
+			prompts = []
+			for record in extraction_records:
+				bundle = record["bundle"]
+				edge_mask = bundle.get("explanation_mask", {}).get("edge_mask")
+				embedding = bundle.get("embedding", {}).get("embedding")
+				if edge_mask is None:
+					explanation_text = "No explanation edge mask available."
+				else:
+					explanation_text = format_explanation(torch.tensor(edge_mask))
+				embedding_text = format_embedding(embedding, max_length=embedding_max_length)
+				subgraph_text = _format_explainer_subgraph_text(
+					bundle,
+					normalized_importance_threshold=normalized_threshold,
+					top_k=top_k,
+					fallback_top_k=fallback_top_k,
+				)
+				prompts.append(build_classification_prompt(explanation_text, embedding_text, subgraph_text, template))
+			if not llm_names:
+				raise ValueError("LLM list is empty for embedding_classification_explainer_subgraph experiment.")
+			predictions = run_inference_all(llm_names, prompts, device, return_raw=True, **generation_cfg)
+			outputs[experiment] = {"prompts": prompts, "predictions": predictions}
+			continue
+
 		if experiment == "raw_graph_reasoning":
 			prompt_cfg = config.get("prompt_raw_reasoning", {})
 			template = prompt_cfg.get("template", "{raw_features}\n{neighbor_table}\n{edge_list}")
@@ -1069,6 +1211,7 @@ def run_experiment_stage(config, extraction_records):
 						"model": record["model"],
 						"target_node": record["target_node"],
 						"true_neighbors": candidate_set.get("true_neighbors", []),
+						"explainer_neighbors": bundle.get("explainer_neighbors", []),
 						"predicted_neighbors": predicted,
 					}
 				)
@@ -1091,6 +1234,7 @@ def run_experiment_stage(config, extraction_records):
 						"model": record["model"],
 						"target_node": record["target_node"],
 						"true_neighbors": candidate_set.get("true_neighbors", []),
+						"explainer_neighbors": bundle.get("explainer_neighbors", []),
 						"predicted_neighbors": predicted,
 					}
 				)
@@ -1113,6 +1257,7 @@ def run_experiment_stage(config, extraction_records):
 						"model": record["model"],
 						"target_node": record["target_node"],
 						"true_neighbors": candidate_set.get("true_neighbors", []),
+						"explainer_neighbors": bundle.get("explainer_neighbors", []),
 						"predicted_neighbors": predicted,
 					}
 				)
@@ -1272,31 +1417,56 @@ def run_evaluation_stage_experiments(config, extraction_records, experiment_outp
 			}
 			if experiment in reconstruction_experiments:
 				rows = []
+				explainer_rows = []
 				for llm_name, llm_preds in predictions_by_llm.items():
 					for idx, record in enumerate(extraction_records):
 						bundle = record.get("bundle") or {}
 						candidate_set = bundle.get("candidate_set") or {}
 						pred = llm_preds[idx] if idx < len(llm_preds) else None
-						rows.append(
+						predicted_neighbors = parse_neighbor_selection_response(str(pred))
+						explainer_neighbors = bundle.get("explainer_neighbors", []) or []
+						row = {
+							"dataset": record["dataset"],
+							"model": record["model"],
+							"llm": llm_name,
+							"target_node": record["target_node"],
+							"true_neighbors": candidate_set.get("true_neighbors", []),
+							"explainer_neighbors": explainer_neighbors,
+							"predicted_neighbors": predicted_neighbors,
+						}
+						rows.append(row)
+						explainer_rows.append(
 							{
 								"dataset": record["dataset"],
 								"model": record["model"],
 								"llm": llm_name,
 								"target_node": record["target_node"],
-								"true_neighbors": candidate_set.get("true_neighbors", []),
-								"predicted_neighbors": parse_neighbor_selection_response(str(pred)),
+								"true_neighbors": explainer_neighbors,
+								"predicted_neighbors": predicted_neighbors,
 							}
 						)
 
 				metrics = evaluate_reconstruction(rows)
+				explainer_metrics = evaluate_reconstruction(explainer_rows)
 				summary_path = str(output_dir / f"results_summary_{experiment}.json")
 				raw_path = str(output_dir / f"results_raw_{experiment}.json")
+				explainer_summary_path = str(output_dir / f"results_summary_{experiment}_explainer.json")
+				explainer_raw_path = str(output_dir / f"results_raw_{experiment}_explainer.json")
 				save_results(metrics, summary_path, fmt="json")
 				save_results(rows, raw_path, fmt="json")
+				save_results(explainer_metrics, explainer_summary_path, fmt="json")
+				save_results(explainer_rows, explainer_raw_path, fmt="json")
 				results[experiment] = {
 					"summary": metrics,
+					"explainer_summary": explainer_metrics,
 					"comparisons": rows,
-					"paths": {"summary": summary_path, "raw": raw_path},
+					"explainer_comparisons": explainer_rows,
+					"paths": {
+						"summary": summary_path,
+						"raw": raw_path,
+						"explainer_summary": explainer_summary_path,
+						"explainer_raw": explainer_raw_path,
+					},
 				}
 				continue
 
@@ -1320,14 +1490,36 @@ def run_evaluation_stage_experiments(config, extraction_records, experiment_outp
 		if "baseline" in payload:
 			rows = payload.get("baseline", [])
 			metrics = evaluate_reconstruction(rows)
+			explainer_rows = [
+				{
+					"dataset": row.get("dataset"),
+					"model": row.get("model"),
+					"target_node": row.get("target_node"),
+					"true_neighbors": row.get("explainer_neighbors", []) or [],
+					"predicted_neighbors": row.get("predicted_neighbors", []) or [],
+				}
+				for row in rows
+			]
+			explainer_metrics = evaluate_reconstruction(explainer_rows)
 			summary_path = str(output_dir / f"results_summary_{experiment}.json")
 			raw_path = str(output_dir / f"results_raw_{experiment}.json")
+			explainer_summary_path = str(output_dir / f"results_summary_{experiment}_explainer.json")
+			explainer_raw_path = str(output_dir / f"results_raw_{experiment}_explainer.json")
 			save_results(metrics, summary_path, fmt="json")
 			save_results(rows, raw_path, fmt="json")
+			save_results(explainer_metrics, explainer_summary_path, fmt="json")
+			save_results(explainer_rows, explainer_raw_path, fmt="json")
 			results[experiment] = {
 				"summary": metrics,
+				"explainer_summary": explainer_metrics,
 				"comparisons": rows,
-				"paths": {"summary": summary_path, "raw": raw_path},
+				"explainer_comparisons": explainer_rows,
+				"paths": {
+					"summary": summary_path,
+					"raw": raw_path,
+					"explainer_summary": explainer_summary_path,
+					"explainer_raw": explainer_raw_path,
+				},
 			}
 			continue
 

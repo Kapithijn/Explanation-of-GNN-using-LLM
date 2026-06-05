@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=gnn_llm_full_pipeline
+#SBATCH --job-name=gnn_elliptic_full_3runs_256
 #SBATCH --output=snellius_%x_%A_%a.out
 #SBATCH --error=snellius_%x_%A_%a.err
 #SBATCH --array=0-4                  # 5 tasks: one per LLM
@@ -23,12 +23,14 @@ set -Eeuo pipefail
 
 # NOTE: Parallel extraction workers >1 can increase RAM use.
 # Start with 1 and increase only if stable.
-EXTRACT_WORKERS=5
+EXTRACT_WORKERS=1
 NUM_TARGET_NODES=100
 NUM_HOPS=2
 DEVICE="cuda"
 SEED=42
 NUM_RUNS=3
+MAX_NEW_TOKENS=256
+LLM_BATCH_SIZE=1
 
 # No external config file is used.
 # The pipeline runs with built-in defaults from `Final_version/main.py`,
@@ -47,11 +49,12 @@ LLM="${LLMS[$SLURM_ARRAY_TASK_ID]}"
 # Datasets and models to run
 # Note: `Final_version/main.py` loads data relative to `Final_version/data/`.
 # For DGraphFin you need: `Final_version/data/dgraphfin_dataset/raw/DGraphFin.zip` (or a symlink).
-# If you only want Elliptic, set: DATASETS=("elliptic")
-DATASETS=("dgraph" "elliptic")
+# If you want DGraphFin too, set: DATASETS=("dgraph" "elliptic")
+DATASETS=("elliptic")
 MODELS=("GCN" "GAT" "GIN" "GraphSAGE")
 EXPERIMENTS=(
     "embedding_classification"
+    "embedding_classification_explainer_subgraph"
     "raw_graph_reasoning"
     "reconstruction_1hop"
     "reconstruction_1hop_embed_expl"
@@ -136,6 +139,8 @@ EXPERIMENTS_ARG="${EXPERIMENTS[*]}"
 
 echo "LLM=${LLM}  Datasets=${DATASETS_ARG}  Models=${MODELS_ARG}  Targets=${NUM_TARGET_NODES}  Runs=${NUM_RUNS}"
 echo "Experiments=${EXPERIMENTS_ARG}"
+echo "Max new tokens=${MAX_NEW_TOKENS}"
+echo "LLM batch size=${LLM_BATCH_SIZE}"
 echo "Output dir: ${OUTDIR}"
 
 python Final_version/main.py \
@@ -150,6 +155,8 @@ python Final_version/main.py \
     --device $DEVICE \
     --seed $SEED \
     --num-runs $NUM_RUNS \
+    --max-new-tokens $MAX_NEW_TOKENS \
+    --llm-batch-size $LLM_BATCH_SIZE \
     --output-dir "$OUTDIR"
 
 echo "Job finished: $SLURM_JOB_ID:$SLURM_ARRAY_TASK_ID"

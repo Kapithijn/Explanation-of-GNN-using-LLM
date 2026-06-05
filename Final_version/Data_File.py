@@ -8,6 +8,7 @@ DATA_ROOT = Path(__file__).parent / "data"
 ELLIPTIC_ROOT = DATA_ROOT / "elliptic_dataset"
 ELLIPTIC_TEMPORAL_ROOT = DATA_ROOT / "elliptic_temporal_dataset"
 DGRAPHFIN_ROOT = DATA_ROOT / "dgraphfin_dataset"
+TFINANCE_ROOT = DATA_ROOT / "tfinance_dataset"
 
 
 def _to_data(dataset):
@@ -47,6 +48,161 @@ def load_dgraphfin(root=DGRAPHFIN_ROOT, force_reload=False):
 	return _to_data(dataset)
 
 
+def _as_tensor(value):
+	"""Convert common graph-array values to torch tensors."""
+	if isinstance(value, torch.Tensor):
+		return value
+	return torch.as_tensor(value)
+
+
+def _get_node_data(graph, names):
+	for name in names:
+		if name in graph.ndata:
+			return graph.ndata[name]
+	available = ", ".join(sorted(str(k) for k in graph.ndata.keys()))
+	raise KeyError(f"Missing node data key. Tried {names}; available keys: {available}")
+
+
+def _select_mask(mask_value, split_id):
+	mask = _as_tensor(mask_value)
+	if mask.ndim > 1:
+		if split_id < 0 or split_id >= int(mask.size(1)):
+			raise ValueError(f"split_id={split_id} is outside mask columns 0..{int(mask.size(1)) - 1}")
+		mask = mask[:, split_id]
+	return mask.bool()
+
+
+def _make_split_masks(y, train_ratio=0.6, val_ratio=0.2, seed=42):
+	"""Create deterministic stratified masks when a graph ships without splits."""
+	y = y.detach().cpu().long().view(-1)
+	num_nodes = int(y.numel())
+	train_mask = torch.zeros(num_nodes, dtype=torch.bool)
+	val_mask = torch.zeros(num_nodes, dtype=torch.bool)
+	test_mask = torch.zeros(num_nodes, dtype=torch.bool)
+	generator = torch.Generator(device="cpu")
+	generator.manual_seed(int(seed))
+
+	for label in torch.unique(y).tolist():
+		idx = (y == int(label)).nonzero(as_tuple=False).view(-1)
+		if idx.numel() == 0:
+			continue
+		idx = idx[torch.randperm(int(idx.numel()), generator=generator)]
+		n_train = int(idx.numel() * float(train_ratio))
+		n_val = int(idx.numel() * float(val_ratio))
+		train_mask[idx[:n_train]] = True
+		val_mask[idx[n_train:n_train + n_val]] = True
+		test_mask[idx[n_train + n_val:]] = True
+
+	return train_mask, val_mask, test_mask
+
+
+def _resolve_tfinance_graph_path(root):
+	root = Path(root)
+	names = (
+		"tfinance",
+		"tfinance.bin",
+		"t-finance",
+		"t-finance.bin",
+		"t_finance",
+		"t_finance.bin",
+		"T-Finance",
+		"T-Finance.bin",
+	)
+	candidates = [
+		*(root / "raw" / name for name in names),
+		*(root / name for name in names),
+	]
+	for path in candidates:
+		if path.exists():
+			return path
+	raise FileNotFoundError(
+		"Missing T-Finance graph file. Expected one of: "
+		+ ", ".join(str(path) for path in candidates)
+		+ ". Place the Kaggle/GADBench T-Finance DGL graph there."
+	)
+
+
+def _resolve_tfinance_processed_path(root):
+	root = Path(root)
+	candidates = [
+		root / "processed" / "tfinance_pyg.pt",
+		root / "tfinance_pyg.pt",
+	]
+	for path in candidates:
+		if path.exists():
+			return path
+	return root / "processed" / "tfinance_pyg.pt"
+
+
+def load_tfinance(
+	root=TFINANCE_ROOT,
+	graph_path=None,
+	split_id=0,
+	semi_supervised=False,
+	cache_processed=True,
+	train_ratio=0.6,
+	val_ratio=0.2,
+	split_seed=42,
+):
+	"""Load the GADBench T-Finance graph and convert it to a PyG Data object."""
+	if graph_path is None:
+		processed_path = _resolve_tfinance_processed_path(root)
+		if processed_path.exists():
+			return torch.load(processed_path, map_location="cpu", weights_only=False)
+	else:
+		processed_path = None
+
+	try:
+		from dgl.data.utils import load_graphs
+	except ImportError as exc:
+		raise ImportError(
+			"Loading T-Finance requires DGL because the raw GADBench/Kaggle file is a DGL graph. "
+			"Install DGL once, or provide a converted PyG cache at "
+			f"{_resolve_tfinance_processed_path(root)}."
+		) from exc
+
+	path = Path(graph_path) if graph_path is not None else _resolve_tfinance_graph_path(root)
+	graphs, _ = load_graphs(str(path))
+	if not graphs:
+		raise ValueError(f"No graphs found in T-Finance file: {path}")
+	graph = graphs[0]
+
+	x = _as_tensor(_get_node_data(graph, ("feature", "features", "feat", "x"))).float()
+	y = _as_tensor(_get_node_data(graph, ("label", "labels", "y"))).long()
+	if y.ndim > 1:
+		y = y.argmax(dim=1)
+	else:
+		y = y.view(-1)
+	src, dst = graph.edges()
+	edge_index = torch.stack([_as_tensor(src).long(), _as_tensor(dst).long()], dim=0)
+
+	if "train_mask" in graph.ndata or "train_masks" in graph.ndata:
+		effective_split = int(split_id) + (10 if semi_supervised else 0)
+		train_mask = _select_mask(_get_node_data(graph, ("train_mask", "train_masks")), effective_split)
+		val_mask = _select_mask(_get_node_data(graph, ("val_mask", "val_masks")), effective_split)
+		test_mask = _select_mask(_get_node_data(graph, ("test_mask", "test_masks")), effective_split)
+	else:
+		train_mask, val_mask, test_mask = _make_split_masks(
+			y,
+			train_ratio=train_ratio,
+			val_ratio=val_ratio,
+			seed=split_seed,
+		)
+
+	data = Data(
+		x=x,
+		edge_index=edge_index,
+		y=y,
+		train_mask=train_mask,
+		val_mask=val_mask,
+		test_mask=test_mask,
+	)
+	if cache_processed and processed_path is not None:
+		processed_path.parent.mkdir(parents=True, exist_ok=True)
+		torch.save(data, processed_path)
+	return data
+
+
 def load_dataset(name, **kwargs):
 	"""Load one of the supported graph datasets by name."""
 	normalized_name = name.strip().lower()
@@ -57,6 +213,8 @@ def load_dataset(name, **kwargs):
 		return load_elliptic_temporal(**kwargs)
 	if normalized_name in {"dgraph", "dgraphfin", "dgraphfindataset"}:
 		return load_dgraphfin(**kwargs)
+	if normalized_name in {"tfinance", "t-finance", "t_finance"}:
+		return load_tfinance(**kwargs)
 
 	raise ValueError(f"Unknown dataset name: {name}")
 
@@ -102,4 +260,3 @@ def print_data_info(data):
 
 	print(f"Any NaN in X: {torch.isnan(data.x).any().item()}")
 	print(f"Any Inf in X: {torch.isinf(data.x).any().item()}")
-

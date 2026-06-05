@@ -65,7 +65,115 @@ def get_prediction(model, data, target_node):
     }
 
 
-def get_explanation(model, data, target_node):
+def get_explainer_neighbors(edge_index, edge_mask, target_node, top_k=5, min_score=None):
+    """Return target-adjacent nodes selected by the highest explainer edge scores."""
+    if edge_index is None or edge_mask is None:
+        return []
+
+    if not torch.is_tensor(edge_index):
+        edge_index = torch.as_tensor(edge_index)
+    scores = torch.as_tensor(edge_mask, device=edge_index.device).reshape(-1)
+    if edge_index.numel() == 0 or scores.numel() == 0:
+        return []
+
+    if top_k is not None:
+        top_k = int(top_k)
+        if top_k <= 0:
+            return []
+
+    num_edges = min(int(edge_index.size(1)), int(scores.numel()))
+    edge_index = edge_index[:, :num_edges]
+    scores = scores[:num_edges]
+
+    src, dst = edge_index
+    target_node = int(target_node)
+    incident_mask = (src == target_node) | (dst == target_node)
+    incident_indices = incident_mask.nonzero(as_tuple=False).view(-1)
+    if incident_indices.numel() == 0:
+        return []
+
+    incident_scores = scores[incident_indices]
+    order = torch.argsort(incident_scores, descending=True)
+
+    selected = []
+    seen = set()
+    threshold = float(min_score) if min_score is not None else None
+    for pos in order.detach().cpu().tolist():
+        edge_pos = int(incident_indices[pos].item())
+        score = float(scores[edge_pos].detach().cpu().item())
+        if threshold is not None and score < threshold:
+            continue
+
+        u = int(src[edge_pos].detach().cpu().item())
+        v = int(dst[edge_pos].detach().cpu().item())
+        neighbor = v if u == target_node else u
+        if neighbor == target_node or neighbor in seen:
+            continue
+
+        selected.append(neighbor)
+        seen.add(neighbor)
+        if top_k is not None and len(selected) >= top_k:
+            break
+
+    return selected
+
+
+def get_explainer_edges(edge_index, edge_mask, top_k=5, min_score=None):
+    """Return the highest-scoring explainer edges with node ids and scores."""
+    if edge_index is None or edge_mask is None:
+        return []
+
+    if not torch.is_tensor(edge_index):
+        edge_index = torch.as_tensor(edge_index)
+    scores = torch.as_tensor(edge_mask, device=edge_index.device).reshape(-1)
+    if edge_index.numel() == 0 or scores.numel() == 0:
+        return []
+
+    num_edges = min(int(edge_index.size(1)), int(scores.numel()))
+    edge_index = edge_index[:, :num_edges]
+    scores = scores[:num_edges]
+    src, dst = edge_index
+
+    valid_mask = src != dst
+    if min_score is not None:
+        valid_mask = valid_mask & (scores >= float(min_score))
+    valid_indices = valid_mask.nonzero(as_tuple=False).view(-1)
+    if valid_indices.numel() == 0:
+        return []
+
+    valid_scores = scores[valid_indices]
+    max_score = float(valid_scores.max().detach().cpu().item())
+    denom = max_score if max_score > 0.0 else 1.0
+
+    if top_k is None:
+        selected_count = int(valid_indices.numel())
+    else:
+        selected_count = min(int(top_k), int(valid_indices.numel()))
+        if selected_count <= 0:
+            return []
+
+    top_scores, order = torch.topk(valid_scores, k=selected_count, largest=True, sorted=True)
+    selected_indices = valid_indices[order]
+
+    edges = []
+    for edge_pos, score in zip(selected_indices.detach().cpu().tolist(), top_scores.detach().cpu().tolist()):
+        edge_pos = int(edge_pos)
+        source = int(src[edge_pos].detach().cpu().item())
+        target = int(dst[edge_pos].detach().cpu().item())
+        importance = float(score)
+        edges.append(
+            {
+                "edge_index": edge_pos,
+                "source": source,
+                "target": target,
+                "importance": importance,
+                "normalized_importance": importance / denom if denom > 0.0 else 0.0,
+            }
+        )
+    return edges
+
+
+def get_explanation(model, data, target_node, explainer_top_k=5, explainer_min_score=None):
     """
     Runs GNNExplainer and returns edge/feature importance masks.
     
@@ -93,11 +201,28 @@ def get_explanation(model, data, target_node):
 
     explanation_edge_index = _edge_index_for_explanation(model, data)
     explanation = explainer(data.x, explanation_edge_index, index=target_node)
+    edge_mask = explanation.edge_mask
+    explainer_neighbors = get_explainer_neighbors(
+        explanation_edge_index,
+        edge_mask,
+        target_node,
+        top_k=explainer_top_k,
+        min_score=explainer_min_score,
+    )
+    explainer_edges = get_explainer_edges(
+        explanation_edge_index,
+        edge_mask,
+        top_k=explainer_top_k,
+        min_score=explainer_min_score,
+    )
     
     return {
         "node_id": target_node,
-        "edge_mask": explanation.edge_mask.cpu().numpy() if explanation.edge_mask is not None else None,
-        "feature_mask": explanation.node_mask.cpu().numpy() if explanation.node_mask is not None else None,
+        "edge_mask": edge_mask.detach().cpu().numpy() if edge_mask is not None else None,
+        "feature_mask": explanation.node_mask.detach().cpu().numpy() if explanation.node_mask is not None else None,
+        "explainer_neighbors": explainer_neighbors,
+        "explainer_edges": explainer_edges,
+        "explainer_top_k": explainer_top_k,
     }
 
 
@@ -246,7 +371,15 @@ def build_candidate_set(data, target_node, true_neighbors, candidate_ratio=4, ma
     }
 
 
-def extract_all(model, data, target_node, num_hops=2, include_candidate_set=True):
+def extract_all(
+    model,
+    data,
+    target_node,
+    num_hops=2,
+    include_candidate_set=True,
+    explainer_top_k=5,
+    explainer_min_score=None,
+):
     """
     Runs all extractions and returns a structured bundle containing:
     - GNN prediction
@@ -264,7 +397,13 @@ def extract_all(model, data, target_node, num_hops=2, include_candidate_set=True
         Dictionary with all extracted components
     """
     prediction = get_prediction(model, data, target_node)
-    explanation = get_explanation(model, data, target_node)
+    explanation = get_explanation(
+        model,
+        data,
+        target_node,
+        explainer_top_k=explainer_top_k,
+        explainer_min_score=explainer_min_score,
+    )
     embedding = get_embedding(model, data, target_node)
     subgraph = get_subgraph(data, target_node, num_hops=num_hops)
     raw_features = get_raw_features(data, target_node)
@@ -288,6 +427,8 @@ def extract_all(model, data, target_node, num_hops=2, include_candidate_set=True
             "edge_mask": explanation.get("edge_mask"),
             "feature_mask": explanation.get("feature_mask"),
         },
+        "explainer_neighbors": explanation.get("explainer_neighbors", []),
+        "explainer_edges": explanation.get("explainer_edges", []),
         "subgraph": subgraph,
         "k_hop_subgraph": subgraph,
         "one_hop_neighbors": one_hop_neighbors,

@@ -4,7 +4,12 @@ from torch_geometric.data import Data
 from torch_geometric.datasets import EllipticBitcoinDataset, EllipticBitcoinTemporalDataset, DGraphFin
 import torch
 
-DATA_ROOT = Path(__file__).parent / "data"
+_FILE_DIR = Path(__file__).resolve().parent
+_REPO_ROOT = _FILE_DIR.parent
+
+# Prefer the repository-level data directory when it exists, but keep the local
+# New_files/data fallback for older layouts.
+DATA_ROOT = _REPO_ROOT / "data" if (_REPO_ROOT / "data").exists() else _FILE_DIR / "data"
 ELLIPTIC_ROOT = DATA_ROOT / "elliptic_dataset"
 ELLIPTIC_TEMPORAL_ROOT = DATA_ROOT / "elliptic_temporal_dataset"
 DGRAPHFIN_ROOT = DATA_ROOT / "dgraphfin_dataset"
