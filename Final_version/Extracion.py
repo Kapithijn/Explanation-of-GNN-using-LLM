@@ -327,12 +327,54 @@ def get_one_hop_neighbors(data, target_node):
 
 def get_neighbor_feature_table(data, neighbor_ids):
     """Return neighbor features aligned with neighbor ids for prompts."""
-    if not hasattr(data, "x") or data.x is None or not neighbor_ids:
-        return {"neighbor_ids": [], "features": []}
-    feats = data.x[torch.tensor(neighbor_ids, device=data.x.device)]
+    table = get_node_feature_table(data, neighbor_ids)
     return {
-        "neighbor_ids": [int(v) for v in neighbor_ids],
+        "neighbor_ids": table.get("node_ids", []),
+        "features": table.get("features", []),
+    }
+
+
+def get_node_feature_table(data, node_ids):
+    """Return raw node features aligned with node ids for prompts."""
+    node_ids = [int(v) for v in (node_ids or [])]
+    if not hasattr(data, "x") or data.x is None or not node_ids:
+        return {"node_ids": [], "features": []}
+    feats = data.x[torch.tensor(node_ids, device=data.x.device)]
+    return {
+        "node_ids": node_ids,
         "features": feats.detach().cpu().numpy(),
+    }
+
+
+def get_node_embedding_table(model, data, node_ids):
+    """Return first-layer GNN embeddings aligned with node ids for prompts."""
+    node_ids = [int(v) for v in (node_ids or [])]
+    if not node_ids:
+        return {"node_ids": [], "embeddings": [], "embedding_dim": 0}
+    if not hasattr(data, "x") or data.x is None or not hasattr(data, "edge_index") or data.edge_index is None:
+        return {"node_ids": [], "embeddings": [], "embedding_dim": 0}
+
+    model.eval()
+    try:
+        model_device = next(model.parameters()).device
+    except StopIteration:
+        model_device = data.x.device if hasattr(data, "x") else torch.device("cpu")
+
+    with torch.no_grad():
+        x = data.x.to(model_device)
+        edge_index = data.edge_index.to(model_device)
+        if hasattr(model, 'conv1'):
+            x = model.conv1(x, edge_index)
+            x = F.relu(x)
+        else:
+            x = model(data.x.to(model_device), edge_index)
+        node_tensor = torch.tensor(node_ids, dtype=torch.long, device=model_device)
+        embeddings = x[node_tensor]
+
+    return {
+        "node_ids": node_ids,
+        "embeddings": embeddings.detach().cpu().numpy(),
+        "embedding_dim": int(embeddings.shape[1]) if embeddings.ndim > 1 else int(embeddings.numel()),
     }
 
 

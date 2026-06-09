@@ -103,6 +103,46 @@ def parse_args(argv=None):
 		default=None,
 		help="Number of prompts to generate per LLM batch (1 keeps sequential inference).",
 	)
+	parser.add_argument(
+		"--reconstruction-max-candidates",
+		type=int,
+		default=None,
+		help="Cap candidate nodes per reconstruction prompt to avoid very large LLM contexts.",
+	)
+	parser.add_argument(
+		"--candidate-feature-max-length",
+		type=int,
+		default=None,
+		help="Cap the number of raw feature values shown per candidate node in reconstruction prompts.",
+	)
+	parser.add_argument(
+		"--candidate-embedding-max-length",
+		type=int,
+		default=None,
+		help="Cap the number of embedding values shown per candidate node in reconstruction prompts.",
+	)
+	parser.add_argument(
+		"--candidate-context-mode",
+		choices=["pca", "summary", "vectors"],
+		default=None,
+		help=(
+			"How to represent candidates in reconstruction prompts. "
+			"'pca' uses globally fitted PCA coordinates, 'summary' uses compact "
+			"similarity/distance statistics, and 'vectors' prints raw vectors."
+		),
+	)
+	parser.add_argument(
+		"--candidate-pca-components",
+		type=int,
+		default=None,
+		help="Number of PCA components to use for feature/embedding vectors in reconstruction prompts.",
+	)
+	parser.add_argument(
+		"--continue-on-llm-error",
+		action="store_true",
+		default=None,
+		help="Log failed LLM prompts as error rows and continue instead of aborting the whole run.",
+	)
 
 	parser.add_argument("--output-dir", type=str, default=None, help="Override output directory for artifacts/results.")
 	parser.add_argument("--device", choices=["auto", "cpu", "cuda", "mps"], default="auto", help="Device selection.")
@@ -224,7 +264,13 @@ def default_config():
 				"explainer_top_k": 5,
 				"explainer_min_score": None,
 				"include_explanation_mask": False,
-				"include_node_features": False,
+				"include_node_features": True,
+				"include_candidate_features": True,
+				"include_candidate_embeddings": True,
+				"candidate_context_mode": "pca",
+				"candidate_pca_components": 16,
+				"candidate_feature_max_length": None,
+				"candidate_embedding_max_length": None,
 				"output_format": "json",
 			},
 			"prompt_explainer_subgraph": {
@@ -292,13 +338,20 @@ def default_config():
 		},
 		"prompt_reconstruction": {
 			"template": (
-"You are given a target node embedding and a candidate set of neighbor nodes.\n"
-"Select which candidate nodes are directly connected to the target node.\n\n"
-"Embedding:\n{embedding}\n\n"
+"You are a strict JSON generator for a graph reconstruction benchmark.\n"
+"Task: select the candidate node ids that are directly connected (1-hop neighbors) to the target node.\n"
+"Rules:\n"
+"- Output exactly one JSON object and nothing else.\n"
+"- Do not explain, do not write markdown, and do not write code.\n"
+"- selected_neighbors must contain only ids copied exactly from the candidate set.\n"
+"- The answer can be empty, contain one id, or contain multiple ids.\n"
+"- Do not copy the whole candidate set or a prefix of it unless every copied id is likely a direct neighbor.\n\n"
+"Target embedding:\n{embedding}\n\n"
+"Target raw features:\n{target_features}\n\n"
+"Candidate node context:\n{candidate_context}\n\n"
 "Candidate set (node ids):\n{candidates}\n\n"
-"Return a JSON object exactly in this format:\n"
-"{{\"selected_neighbors\": [<ids>], \"confidence\": <float>}}\n"
-"Do not output anything else."
+"Required output format, using actual integer ids:\n"
+"{{\"selected_neighbors\": [], \"confidence\": 0.0}}"
 			)
 		},
 		"train": {
@@ -310,6 +363,7 @@ def default_config():
 		"generation": {
 			"max_new_tokens": 256,
 			"llm_batch_size": 1,
+			"continue_on_error": False,
 		},
 		"large_graph_cpu_fallback": True,
 	}
@@ -350,6 +404,42 @@ def apply_cli_overrides(config, args):
 		if not isinstance(generation, dict):
 			generation = {}
 		generation["llm_batch_size"] = max(1, int(args.llm_batch_size))
+		config["generation"] = generation
+	if getattr(args, "reconstruction_max_candidates", None) is not None:
+		reconstruction = config.get("reconstruction")
+		if not isinstance(reconstruction, dict):
+			reconstruction = {}
+		reconstruction["max_candidates"] = max(1, int(args.reconstruction_max_candidates))
+		config["reconstruction"] = reconstruction
+	if getattr(args, "candidate_feature_max_length", None) is not None:
+		reconstruction = config.get("reconstruction")
+		if not isinstance(reconstruction, dict):
+			reconstruction = {}
+		reconstruction["candidate_feature_max_length"] = max(0, int(args.candidate_feature_max_length))
+		config["reconstruction"] = reconstruction
+	if getattr(args, "candidate_embedding_max_length", None) is not None:
+		reconstruction = config.get("reconstruction")
+		if not isinstance(reconstruction, dict):
+			reconstruction = {}
+		reconstruction["candidate_embedding_max_length"] = max(0, int(args.candidate_embedding_max_length))
+		config["reconstruction"] = reconstruction
+	if getattr(args, "candidate_context_mode", None) is not None:
+		reconstruction = config.get("reconstruction")
+		if not isinstance(reconstruction, dict):
+			reconstruction = {}
+		reconstruction["candidate_context_mode"] = str(args.candidate_context_mode)
+		config["reconstruction"] = reconstruction
+	if getattr(args, "candidate_pca_components", None) is not None:
+		reconstruction = config.get("reconstruction")
+		if not isinstance(reconstruction, dict):
+			reconstruction = {}
+		reconstruction["candidate_pca_components"] = max(1, int(args.candidate_pca_components))
+		config["reconstruction"] = reconstruction
+	if getattr(args, "continue_on_llm_error", None) is True:
+		generation = config.get("generation")
+		if not isinstance(generation, dict):
+			generation = {}
+		generation["continue_on_error"] = True
 		config["generation"] = generation
 	if args.seed is not None:
 		config["seed"] = int(args.seed)
@@ -611,7 +701,13 @@ def run_training_stage(config, model_bundle, datasets):
 
 def run_extraction_stage(config, model_bundle, datasets):
 	"""Run extraction (prediction/explanation/embedding/subgraph) for target nodes."""
-	from Extracion import extract_all, build_candidate_set, get_one_hop_neighbors
+	from Extracion import (
+		extract_all,
+		build_candidate_set,
+		get_node_embedding_table,
+		get_node_feature_table,
+		get_one_hop_neighbors,
+	)
 
 	num_hops = int(config.get("num_hops", 2))
 	enable_large_graph_cpu_fallback = bool(config.get("large_graph_cpu_fallback", True))
@@ -656,6 +752,25 @@ def run_extraction_stage(config, model_bundle, datasets):
 	recon_cfg_for_extraction = config.get("reconstruction", {}) or {}
 	explainer_top_k = recon_cfg_for_extraction.get("explainer_top_k", 5)
 	explainer_min_score = recon_cfg_for_extraction.get("explainer_min_score")
+
+	def attach_candidate_context(bundle, data, model):
+		candidate_set = bundle.get("candidate_set") or {}
+		candidate_ids = [int(v) for v in (candidate_set.get("candidates", []) or [])]
+		bundle["candidate_feature_table"] = get_node_feature_table(data, candidate_ids)
+		if model is None or not bool(recon_cfg_for_extraction.get("include_candidate_embeddings", True)):
+			bundle["candidate_embedding_table"] = {"node_ids": [], "embeddings": [], "embedding_dim": 0}
+			return
+		try:
+			bundle["candidate_embedding_table"] = get_node_embedding_table(model, data, candidate_ids)
+		except Exception as exc:
+			print(f"Warning: could not compute candidate embeddings for reconstruction prompt: {exc}")
+			bundle["candidate_embedding_table"] = {
+				"node_ids": [],
+				"embeddings": [],
+				"embedding_dim": 0,
+				"error": str(exc),
+			}
+
 	if workers > 1:
 		requested_device = resolve_device(config.get("device"))
 		print(f"Parallel extraction enabled: {workers} worker process(es).")
@@ -719,6 +834,7 @@ def run_extraction_stage(config, model_bundle, datasets):
 						max_candidates=max_candidates,
 						seed=seed,
 					)
+					attach_candidate_context(bundle, data, model)
 					bundle["dataset"] = dataset_name
 					bundle["model"] = model_name
 					records.append(
@@ -818,6 +934,8 @@ def run_extraction_stage(config, model_bundle, datasets):
 						max_candidates=max_candidates,
 						seed=seed,
 					)
+					model_for_context = (model_bundle.get(record.get("dataset")) or {}).get(record.get("model"))
+					attach_candidate_context(bundle, data, model_for_context)
 				bundle["dataset"] = record.get("dataset")
 				bundle["model"] = record.get("model")
 				record["bundle"] = bundle
@@ -912,6 +1030,354 @@ def _format_raw_features_text(raw_features):
 	if raw_features is None:
 		return "(none)"
 	return "[" + ", ".join(f"{float(v):.4f}" for v in raw_features) + "]"
+
+
+def _format_numeric_vector(values, max_length=None):
+	if values is None:
+		return "(unavailable)"
+	try:
+		flat_values = list(values.flatten()) if hasattr(values, "flatten") else list(values)
+	except TypeError:
+		flat_values = [values]
+
+	original_len = len(flat_values)
+	if max_length is not None:
+		max_length = max(0, int(max_length))
+		flat_values = flat_values[:max_length]
+
+	text = "[" + ", ".join(f"{float(v):.4f}" for v in flat_values) + "]"
+	if max_length is not None and original_len > max_length:
+		text += f" (truncated to {max_length} of {original_len})"
+	return text
+
+
+def _as_float_vector(values):
+	if values is None:
+		return None
+	try:
+		import numpy as np
+	except Exception:
+		np = None
+
+	if np is not None:
+		try:
+			vector = np.asarray(values, dtype=float).reshape(-1)
+			if vector.size == 0:
+				return None
+			return vector
+		except Exception:
+			return None
+
+	try:
+		vector = [float(v) for v in values]
+	except Exception:
+		return None
+	return vector if vector else None
+
+
+def _vector_similarity_metrics(target_values, candidate_values):
+	try:
+		import numpy as np
+	except Exception:
+		return None
+
+	target = _as_float_vector(target_values)
+	candidate = _as_float_vector(candidate_values)
+	if target is None or candidate is None:
+		return None
+
+	target = np.asarray(target, dtype=float).reshape(-1)
+	candidate = np.asarray(candidate, dtype=float).reshape(-1)
+	dim = min(int(target.size), int(candidate.size))
+	if dim <= 0:
+		return None
+
+	target = target[:dim]
+	candidate = candidate[:dim]
+	diff = target - candidate
+	target_norm = float(np.linalg.norm(target))
+	candidate_norm = float(np.linalg.norm(candidate))
+	denom = target_norm * candidate_norm
+	cosine = float(np.dot(target, candidate) / denom) if denom > 0.0 else 0.0
+	return {
+		"dim": dim,
+		"cosine": cosine,
+		"l2": float(np.linalg.norm(diff)),
+		"mean_abs_diff": float(np.mean(np.abs(diff))),
+	}
+
+
+def _format_metric_value(value):
+	if value is None:
+		return "unavailable"
+	return f"{float(value):.4f}"
+
+
+def _collect_table_vectors(table, value_key):
+	if not isinstance(table, dict):
+		return []
+	values = table.get(value_key, [])
+	if values is None:
+		return []
+	return [value for value in values]
+
+
+def _fit_pca_model(vectors, n_components, label):
+	try:
+		import numpy as np
+	except Exception:
+		return {"error": "numpy_unavailable", "label": label}
+
+	rows = []
+	original_dim = None
+	for values in vectors:
+		vector = _as_float_vector(values)
+		if vector is None:
+			continue
+		vector = np.asarray(vector, dtype=float).reshape(-1)
+		if vector.size == 0:
+			continue
+		if original_dim is None:
+			original_dim = int(vector.size)
+		if int(vector.size) != original_dim:
+			continue
+		rows.append(vector)
+
+	if not rows or original_dim is None:
+		return {"error": "no_vectors", "label": label}
+
+	matrix = np.vstack(rows)
+	component_count = min(max(1, int(n_components)), int(original_dim), int(matrix.shape[0]))
+	mean = matrix.mean(axis=0)
+
+	if matrix.shape[0] < 2:
+		components = np.eye(original_dim, dtype=float)[:component_count]
+		explained_ratio = []
+	else:
+		centered = matrix - mean
+		try:
+			_, singular_values, vt = np.linalg.svd(centered, full_matrices=False)
+		except Exception as exc:
+			return {"error": str(exc), "label": label}
+		components = vt[:component_count]
+		variance = (singular_values ** 2) / max(1, matrix.shape[0] - 1)
+		total_variance = float(variance.sum())
+		if total_variance > 0.0:
+			explained_ratio = (variance[:component_count] / total_variance).tolist()
+		else:
+			explained_ratio = []
+
+	return {
+		"label": label,
+		"mean": mean,
+		"components": components,
+		"n_components": int(component_count),
+		"original_dim": int(original_dim),
+		"fit_samples": int(matrix.shape[0]),
+		"explained_variance_ratio": explained_ratio,
+	}
+
+
+def _project_with_pca(values, pca_model):
+	if not isinstance(pca_model, dict) or pca_model.get("components") is None:
+		return None
+	vector = _as_float_vector(values)
+	if vector is None:
+		return None
+	try:
+		import numpy as np
+	except Exception:
+		return None
+	vector = np.asarray(vector, dtype=float).reshape(-1)
+	original_dim = int(pca_model.get("original_dim", 0) or 0)
+	if original_dim <= 0 or int(vector.size) != original_dim:
+		return None
+	mean = pca_model.get("mean")
+	components = pca_model.get("components")
+	if mean is None or components is None:
+		return None
+	return (vector - mean) @ components.T
+
+
+def _format_pca_projection(values, pca_model, label):
+	projected = _project_with_pca(values, pca_model)
+	if projected is None:
+		error = pca_model.get("error") if isinstance(pca_model, dict) else None
+		return f"{label}: (PCA unavailable{f'; {error}' if error else ''})"
+	return f"{label}: " + _format_numeric_vector(projected)
+
+
+def _build_reconstruction_pca_models(extraction_records, reconstruction_cfg):
+	component_count = int(reconstruction_cfg.get("candidate_pca_components", 16) or 16)
+	feature_vectors = []
+	embedding_vectors = []
+
+	for record in extraction_records:
+		bundle = record.get("bundle") or {}
+		raw_features = bundle.get("raw_features")
+		if raw_features is not None:
+			feature_vectors.append(raw_features)
+		feature_vectors.extend(_collect_table_vectors(bundle.get("candidate_feature_table"), "features"))
+
+		embedding = (bundle.get("embedding") or {}).get("embedding")
+		if embedding is not None:
+			embedding_vectors.append(embedding)
+		embedding_vectors.extend(_collect_table_vectors(bundle.get("candidate_embedding_table"), "embeddings"))
+
+	return {
+		"features": _fit_pca_model(feature_vectors, component_count, "raw_features"),
+		"embeddings": _fit_pca_model(embedding_vectors, component_count, "embeddings"),
+	}
+
+
+def _reconstruction_pca_group_key(record):
+	return (str(record.get("dataset", "")), str(record.get("model", "")))
+
+
+def _build_reconstruction_pca_models_by_group(extraction_records, reconstruction_cfg):
+	groups = {}
+	for record in extraction_records:
+		groups.setdefault(_reconstruction_pca_group_key(record), []).append(record)
+
+	models_by_group = {}
+	for key, records in groups.items():
+		models = _build_reconstruction_pca_models(records, reconstruction_cfg)
+		group_label = f"{key[0]}|{key[1]}"
+		for pca_model in models.values():
+			if isinstance(pca_model, dict):
+				pca_model["fit_group"] = group_label
+		models_by_group[key] = models
+	return models_by_group
+
+
+def _pca_models_for_record(models_by_group, record):
+	if not models_by_group:
+		return None
+	return models_by_group.get(_reconstruction_pca_group_key(record))
+
+
+def _format_pca_model_note(pca_model, label):
+	if not isinstance(pca_model, dict) or pca_model.get("components") is None:
+		error = pca_model.get("error") if isinstance(pca_model, dict) else "unavailable"
+		return f"{label} PCA unavailable ({error})"
+	ratios = pca_model.get("explained_variance_ratio") or []
+	explained = sum(float(v) for v in ratios) if ratios else 0.0
+	group = pca_model.get("fit_group")
+	group_text = f" fit_group={group}" if group else ""
+	return (
+		f"{label} PCA-{int(pca_model.get('n_components', 0))}{group_text} "
+		f"fit_samples={int(pca_model.get('fit_samples', 0))} "
+		f"original_dim={int(pca_model.get('original_dim', 0))} "
+		f"explained_variance={explained:.4f}"
+	)
+
+
+def _table_value_map(table, value_key):
+	if not isinstance(table, dict):
+		return {}
+	node_ids = table.get("node_ids", table.get("neighbor_ids", []))
+	values = table.get(value_key, [])
+	if node_ids is None:
+		node_ids = []
+	if values is None:
+		values = []
+	mapped = {}
+	for idx, node_id in enumerate(node_ids):
+		if idx < len(values):
+			mapped[int(node_id)] = values[idx]
+	return mapped
+
+
+def _format_candidate_context_text(
+	bundle,
+	include_features=True,
+	include_embeddings=True,
+	feature_max_length=None,
+	embedding_max_length=None,
+	mode="summary",
+	pca_models=None,
+):
+	candidate_set = bundle.get("candidate_set") or {}
+	candidates = [int(v) for v in (candidate_set.get("candidates", []) or [])]
+	if not candidates:
+		return "(none)"
+
+	feature_map = _table_value_map(bundle.get("candidate_feature_table"), "features") if include_features else {}
+	embedding_map = _table_value_map(bundle.get("candidate_embedding_table"), "embeddings") if include_embeddings else {}
+	mode = str(mode or "summary").strip().lower()
+
+	if mode == "pca":
+		pca_models = pca_models or {}
+		feature_pca = pca_models.get("features", {})
+		embedding_pca = pca_models.get("embeddings", {})
+		lines = [
+			"PCA coordinates use one basis fitted over target and candidate vectors for this dataset/model group.",
+		]
+		if include_features:
+			lines.append(_format_pca_model_note(feature_pca, "raw_feature"))
+		if include_embeddings:
+			lines.append(_format_pca_model_note(embedding_pca, "embedding"))
+		for node_id in candidates:
+			parts = [f"node {node_id}"]
+			if include_features:
+				parts.append(_format_pca_projection(feature_map.get(node_id), feature_pca, "raw_feature_pca"))
+			if include_embeddings:
+				parts.append(_format_pca_projection(embedding_map.get(node_id), embedding_pca, "embedding_pca"))
+			lines.append(": ".join([parts[0], "; ".join(parts[1:])]) if len(parts) > 1 else parts[0])
+		return "\n".join(lines)
+
+	if mode == "summary":
+		target_features = bundle.get("raw_features")
+		target_embedding = (bundle.get("embedding") or {}).get("embedding")
+		lines = [
+			"Each row gives compact comparisons to the target node. Higher cosine and lower L2/mean_abs_diff indicate more similar nodes."
+		]
+		for node_id in candidates:
+			parts = [f"node {node_id}"]
+			if include_features:
+				metrics = _vector_similarity_metrics(target_features, feature_map.get(node_id))
+				if metrics is None:
+					parts.append("raw_feature_similarity=unavailable")
+				else:
+					parts.extend(
+						[
+							f"raw_feature_dim={metrics['dim']}",
+							f"raw_feature_cosine={_format_metric_value(metrics['cosine'])}",
+							f"raw_feature_l2={_format_metric_value(metrics['l2'])}",
+							f"raw_feature_mean_abs_diff={_format_metric_value(metrics['mean_abs_diff'])}",
+						]
+					)
+			if include_embeddings:
+				metrics = _vector_similarity_metrics(target_embedding, embedding_map.get(node_id))
+				if metrics is None:
+					parts.append("embedding_similarity=unavailable")
+				else:
+					parts.extend(
+						[
+							f"embedding_dim={metrics['dim']}",
+							f"embedding_cosine={_format_metric_value(metrics['cosine'])}",
+							f"embedding_l2={_format_metric_value(metrics['l2'])}",
+							f"embedding_mean_abs_diff={_format_metric_value(metrics['mean_abs_diff'])}",
+						]
+					)
+			lines.append(": ".join([parts[0], "; ".join(parts[1:])]) if len(parts) > 1 else parts[0])
+		return "\n".join(lines)
+
+	lines = []
+	for node_id in candidates:
+		parts = [f"node {node_id}"]
+		if include_features:
+			parts.append(
+				"raw_features="
+				+ _format_numeric_vector(feature_map.get(node_id), max_length=feature_max_length)
+			)
+		if include_embeddings:
+			parts.append(
+				"embedding="
+				+ _format_numeric_vector(embedding_map.get(node_id), max_length=embedding_max_length)
+			)
+		lines.append(": ".join([parts[0], "; ".join(parts[1:])]) if len(parts) > 1 else parts[0])
+	return "\n".join(lines)
 
 
 def _format_neighbor_table_text(neighbor_table):
@@ -1026,6 +1492,95 @@ def _run_baseline_feature_distance(raw_features, neighbor_table, candidate_set):
 	return [node_id for _, node_id in scores[:k]]
 
 
+def _extract_llm_prompt_and_raw_output(output, prompts, idx):
+	"""Return the prompt sent to the LLM and the raw text returned by it."""
+	prompt = prompts[idx] if idx < len(prompts) else None
+	if isinstance(output, dict):
+		prompt = output.get("prompt", output.get("llm_input_prompt", prompt))
+		raw_output = output.get("raw_response")
+		if raw_output is None:
+			raw_output = output.get(
+				"llm_output_raw",
+				output.get("output", output.get("prediction", output.get("llm_pred"))),
+			)
+		return prompt, raw_output
+	return prompt, output
+
+
+def _extract_llm_error(output):
+	if isinstance(output, dict):
+		return output.get("error")
+	return None
+
+
+def _llm_output_to_text(raw_output):
+	"""Convert a saved LLM output to text for parser-only code paths."""
+	if raw_output is None or isinstance(raw_output, str):
+		return raw_output
+	try:
+		return json.dumps(raw_output)
+	except TypeError:
+		return str(raw_output)
+
+
+def _build_llm_io_records(experiment, extraction_records, prompts, predictions_by_llm):
+	"""Build auditable rows containing each LLM input prompt and raw output."""
+	rows = []
+	for llm_name, llm_outputs in (predictions_by_llm or {}).items():
+		for idx, output in enumerate(llm_outputs or []):
+			record = extraction_records[idx] if idx < len(extraction_records) else {}
+			prompt, raw_output = _extract_llm_prompt_and_raw_output(output, prompts, idx)
+			row = {
+				"experiment": experiment,
+				"dataset": record.get("dataset"),
+				"model": record.get("model"),
+				"llm": llm_name,
+				"target_node": record.get("target_node"),
+				"prompt_index": idx,
+				"llm_input_prompt": prompt,
+				"llm_output_raw": raw_output,
+			}
+			if isinstance(output, dict) and output.get("parsed_prediction") is not None:
+				row["parsed_prediction"] = output.get("parsed_prediction")
+			error = _extract_llm_error(output)
+			if error is not None:
+				row["llm_error"] = error
+			rows.append(row)
+	return rows
+
+
+def _save_llm_io_records(config, experiment, extraction_records, prompts, predictions_by_llm):
+	"""Persist prompt/response audit records for LLM-backed experiments."""
+	rows = _build_llm_io_records(experiment, extraction_records, prompts, predictions_by_llm)
+	output_dir = Path(str(config.get("output_dir", "outputs")))
+	output_dir.mkdir(parents=True, exist_ok=True)
+	path = str(output_dir / f"llm_prompt_io_{experiment}.json")
+	save_results(rows, path, fmt="json")
+	return path
+
+
+def _format_reconstruction_embedding_text(embedding, context_mode, pca_models):
+	if context_mode == "pca":
+		return _format_pca_projection(
+			embedding,
+			(pca_models or {}).get("embeddings", {}),
+			"target_embedding_pca",
+		)
+	return format_embedding(embedding, max_length=None)
+
+
+def _format_reconstruction_target_features_text(bundle, reconstruction_cfg, context_mode, pca_models):
+	if not bool(reconstruction_cfg.get("include_node_features", True)):
+		return "(omitted)"
+	if context_mode == "pca":
+		return _format_pca_projection(
+			bundle.get("raw_features"),
+			(pca_models or {}).get("features", {}),
+			"target_raw_feature_pca",
+		)
+	return _format_raw_features_text(bundle.get("raw_features"))
+
+
 def run_experiment_stage(config, extraction_records):
 	"""Run experiment branches and return prompts/predictions by experiment."""
 	experiment_names = config.get("experiments", []) or []
@@ -1035,6 +1590,14 @@ def run_experiment_stage(config, extraction_records):
 	llm_names = config.get("llms", []) or []
 	device = resolve_device(config.get("device"))
 	generation_cfg = config.get("generation", {}) or {}
+	reconstruction_cfg = config.get("reconstruction", {}) or {}
+	reconstruction_context_mode = str(reconstruction_cfg.get("candidate_context_mode", "pca") or "pca").strip().lower()
+	reconstruction_pca_models_by_group = None
+	if reconstruction_context_mode == "pca":
+		reconstruction_pca_models_by_group = _build_reconstruction_pca_models_by_group(
+			extraction_records,
+			reconstruction_cfg,
+		)
 
 	outputs = {}
 
@@ -1059,7 +1622,8 @@ def run_experiment_stage(config, extraction_records):
 			if not llm_names:
 				raise ValueError("LLM list is empty for embedding_classification experiment.")
 			predictions = run_inference_all(llm_names, prompts, device, return_raw=True, **generation_cfg)
-			outputs[experiment] = {"prompts": prompts, "predictions": predictions}
+			llm_io_path = _save_llm_io_records(config, experiment, extraction_records, prompts, predictions)
+			outputs[experiment] = {"prompts": prompts, "predictions": predictions, "paths": {"llm_prompt_io": llm_io_path}}
 			continue
 
 		if experiment == "embedding_classification_explainer_subgraph":
@@ -1096,7 +1660,8 @@ def run_experiment_stage(config, extraction_records):
 			if not llm_names:
 				raise ValueError("LLM list is empty for embedding_classification_explainer_subgraph experiment.")
 			predictions = run_inference_all(llm_names, prompts, device, return_raw=True, **generation_cfg)
-			outputs[experiment] = {"prompts": prompts, "predictions": predictions}
+			llm_io_path = _save_llm_io_records(config, experiment, extraction_records, prompts, predictions)
+			outputs[experiment] = {"prompts": prompts, "predictions": predictions, "paths": {"llm_prompt_io": llm_io_path}}
 			continue
 
 		if experiment == "raw_graph_reasoning":
@@ -1112,7 +1677,8 @@ def run_experiment_stage(config, extraction_records):
 			if not llm_names:
 				raise ValueError("LLM list is empty for raw_graph_reasoning experiment.")
 			predictions = run_inference_all(llm_names, prompts, device, return_raw=True, **generation_cfg)
-			outputs[experiment] = {"prompts": prompts, "predictions": predictions}
+			llm_io_path = _save_llm_io_records(config, experiment, extraction_records, prompts, predictions)
+			outputs[experiment] = {"prompts": prompts, "predictions": predictions, "paths": {"llm_prompt_io": llm_io_path}}
 			continue
 
 		if experiment == "reconstruction_1hop":
@@ -1121,23 +1687,72 @@ def run_experiment_stage(config, extraction_records):
 			prompts = []
 			for record in extraction_records:
 				bundle = record["bundle"]
+				reconstruction_pca_models = _pca_models_for_record(reconstruction_pca_models_by_group, record)
 				embedding = bundle.get("embedding", {}).get("embedding")
-				embedding_text = format_embedding(embedding, max_length=None)
+				embedding_text = _format_reconstruction_embedding_text(
+					embedding,
+					reconstruction_context_mode,
+					reconstruction_pca_models,
+				)
 				candidate_text = _format_candidate_set_text(bundle.get("candidate_set"))
-				prompts.append(build_neighbor_selection_prompt(embedding_text, candidate_text, template))
+				target_features_text = _format_reconstruction_target_features_text(
+					bundle,
+					reconstruction_cfg,
+					reconstruction_context_mode,
+					reconstruction_pca_models,
+				)
+				candidate_context_text = _format_candidate_context_text(
+					bundle,
+					include_features=bool(reconstruction_cfg.get("include_candidate_features", True)),
+					include_embeddings=bool(reconstruction_cfg.get("include_candidate_embeddings", True)),
+					feature_max_length=reconstruction_cfg.get("candidate_feature_max_length"),
+					embedding_max_length=reconstruction_cfg.get("candidate_embedding_max_length"),
+					mode=reconstruction_context_mode,
+					pca_models=reconstruction_pca_models,
+				)
+				prompts.append(
+					build_neighbor_selection_prompt(
+						embedding_text,
+						candidate_text,
+						template,
+						target_features_text=target_features_text,
+						candidate_context_text=candidate_context_text,
+					)
+				)
 			if not llm_names:
 				raise ValueError("LLM list is empty for reconstruction_1hop experiment.")
 			predictions = run_inference_all(llm_names, prompts, device, parse_predictions=False, **generation_cfg)
-			outputs[experiment] = {"prompts": prompts, "predictions": predictions}
+			llm_io_path = _save_llm_io_records(config, experiment, extraction_records, prompts, predictions)
+			outputs[experiment] = {"prompts": prompts, "predictions": predictions, "paths": {"llm_prompt_io": llm_io_path}}
 			continue
 
 		if experiment == "reconstruction_1hop_embed_expl":
 			prompts = []
 			for record in extraction_records:
 				bundle = record["bundle"]
+				reconstruction_pca_models = _pca_models_for_record(reconstruction_pca_models_by_group, record)
 				embedding = bundle.get("embedding", {}).get("embedding")
-				embedding_text = format_embedding(embedding, max_length=None)
+				embedding_text = _format_reconstruction_embedding_text(
+					embedding,
+					reconstruction_context_mode,
+					reconstruction_pca_models,
+				)
 				candidate_text = _format_candidate_set_text(bundle.get("candidate_set"))
+				target_features_text = _format_reconstruction_target_features_text(
+					bundle,
+					reconstruction_cfg,
+					reconstruction_context_mode,
+					reconstruction_pca_models,
+				)
+				candidate_context_text = _format_candidate_context_text(
+					bundle,
+					include_features=bool(reconstruction_cfg.get("include_candidate_features", True)),
+					include_embeddings=bool(reconstruction_cfg.get("include_candidate_embeddings", True)),
+					feature_max_length=reconstruction_cfg.get("candidate_feature_max_length"),
+					embedding_max_length=reconstruction_cfg.get("candidate_embedding_max_length"),
+					mode=reconstruction_context_mode,
+					pca_models=reconstruction_pca_models,
+				)
 
 				feature_mask = bundle.get("explanation_mask", {}).get("feature_mask")
 				if feature_mask is None:
@@ -1161,41 +1776,73 @@ def run_experiment_stage(config, extraction_records):
 						explanation_text = "No explanation feature mask available."
 
 				prompt = (
-					"You are given a target node embedding and a non-structural explanation (feature-importance mask) of a GNN decision.\n"
-					"Select which candidate nodes are directly connected (1-hop neighbors) to the target node.\n\n"
+					"You are a strict JSON generator for a graph reconstruction benchmark.\n"
+					"Task: select the candidate node ids that are directly connected (1-hop neighbors) to the target node.\n"
+					"Rules:\n"
+					"- Output exactly one JSON object and nothing else.\n"
+					"- Do not explain, do not write markdown, and do not write code.\n"
+					"- selected_neighbors must contain only ids copied exactly from the candidate set.\n"
+					"- The answer can be empty, contain one id, or contain multiple ids.\n"
+					"- Do not copy the whole candidate set or a prefix of it unless every copied id is likely a direct neighbor.\n\n"
 					f"Explanation (non-subgraph):\n{explanation_text}\n\n"
-					f"Embedding:\n{embedding_text}\n\n"
+					f"Target embedding:\n{embedding_text}\n\n"
+					f"Target raw features:\n{target_features_text}\n\n"
+					f"Candidate node context:\n{candidate_context_text}\n\n"
 					f"Candidate set (node ids):\n{candidate_text}\n\n"
-					"Return a JSON object exactly in this format:\n"
-					'{"selected_neighbors": [<ids>], "confidence": <float>}\n'
-					"Do not output anything else."
+					"Required output format, using actual integer ids:\n"
+					'{"selected_neighbors": [], "confidence": 0.0}'
 				)
 				prompts.append(prompt)
 			if not llm_names:
 				raise ValueError("LLM list is empty for reconstruction_1hop_embed_expl experiment.")
 			predictions = run_inference_all(llm_names, prompts, device, parse_predictions=False, **generation_cfg)
-			outputs[experiment] = {"prompts": prompts, "predictions": predictions}
+			llm_io_path = _save_llm_io_records(config, experiment, extraction_records, prompts, predictions)
+			outputs[experiment] = {"prompts": prompts, "predictions": predictions, "paths": {"llm_prompt_io": llm_io_path}}
 			continue
 
 		if experiment == "reconstruction_1hop_no_gnn":
 			prompts = []
 			for record in extraction_records:
 				bundle = record["bundle"]
+				reconstruction_pca_models = _pca_models_for_record(reconstruction_pca_models_by_group, record)
 				candidate_text = _format_candidate_set_text(bundle.get("candidate_set"))
+				target_features_text = _format_reconstruction_target_features_text(
+					bundle,
+					reconstruction_cfg,
+					reconstruction_context_mode,
+					reconstruction_pca_models,
+				)
+				candidate_context_text = _format_candidate_context_text(
+					bundle,
+					include_features=bool(reconstruction_cfg.get("include_candidate_features", True)),
+					include_embeddings=False,
+					feature_max_length=reconstruction_cfg.get("candidate_feature_max_length"),
+					embedding_max_length=None,
+					mode=reconstruction_context_mode,
+					pca_models=reconstruction_pca_models,
+				)
 				prompt = (
-					"You are given a candidate set of node ids.\n"
-					"Select which candidate nodes are directly connected (1-hop neighbors) to the target node.\n\n"
+					"You are a strict JSON generator for a graph reconstruction benchmark.\n"
+					"Task: select the candidate node ids that are directly connected (1-hop neighbors) to the target node.\n"
+					"Rules:\n"
+					"- Output exactly one JSON object and nothing else.\n"
+					"- Do not explain, do not write markdown, and do not write code.\n"
+					"- selected_neighbors must contain only ids copied exactly from the candidate set.\n"
+					"- The answer can be empty, contain one id, or contain multiple ids.\n"
+					"- Do not copy the whole candidate set or a prefix of it unless every copied id is likely a direct neighbor.\n\n"
 					f"Target node id: {int(record.get('target_node', 0) or 0)}\n\n"
+					f"Target raw features:\n{target_features_text}\n\n"
+					f"Candidate node context:\n{candidate_context_text}\n\n"
 					f"Candidate set (node ids):\n{candidate_text}\n\n"
-					"Return a JSON object exactly in this format:\n"
-					'{"selected_neighbors": [<ids>], "confidence": <float>}\n'
-					"Do not output anything else."
+					"Required output format, using actual integer ids:\n"
+					'{"selected_neighbors": [], "confidence": 0.0}'
 				)
 				prompts.append(prompt)
 			if not llm_names:
 				raise ValueError("LLM list is empty for reconstruction_1hop_no_gnn experiment.")
 			predictions = run_inference_all(llm_names, prompts, device, parse_predictions=False, **generation_cfg)
-			outputs[experiment] = {"prompts": prompts, "predictions": predictions}
+			llm_io_path = _save_llm_io_records(config, experiment, extraction_records, prompts, predictions)
+			outputs[experiment] = {"prompts": prompts, "predictions": predictions, "paths": {"llm_prompt_io": llm_io_path}}
 			continue
 
 		if experiment == "baseline_random":
@@ -1306,13 +1953,16 @@ def run_llm_stage(config, extraction_records):
 
 	predictions = run_inference_all(llm_names, prompts, device, return_raw=True, **generation_cfg)
 
-	return {"prompts": prompts, "predictions": predictions}
+	llm_io_path = _save_llm_io_records(config, "default", extraction_records, prompts, predictions)
+	return {"prompts": prompts, "predictions": predictions, "paths": {"llm_prompt_io": llm_io_path}}
 
 
 def _split_llm_prediction_output(output):
 	"""Return (parsed_prediction, raw_response) from old or raw-preserving outputs."""
 	if isinstance(output, dict):
 		raw_response = output.get("raw_response")
+		if raw_response is None:
+			raw_response = output.get("llm_output_raw")
 		parsed = output.get("parsed_prediction")
 		if parsed is None:
 			parsed = output.get("prediction", output.get("llm_pred", raw_response))
@@ -1342,7 +1992,10 @@ def run_evaluation_stage(config, extraction_records, llm_outputs):
 					"Missing predicted_class in extraction record bundle: "
 					"expected record['bundle']['prediction']['predicted_class']."
 				)
-			llm_pred, llm_raw_response = _split_llm_prediction_output(llm_preds[idx])
+			llm_output = llm_preds[idx]
+			llm_pred, llm_raw_response = _split_llm_prediction_output(llm_output)
+			llm_prompt, llm_raw_output = _extract_llm_prompt_and_raw_output(llm_output, prompts, idx)
+			llm_error = _extract_llm_error(llm_output)
 			row = {
 				"dataset": record["dataset"],
 				"model": record["model"],
@@ -1351,10 +2004,12 @@ def run_evaluation_stage(config, extraction_records, llm_outputs):
 				"target_class": prediction_bundle.get("target_class"),
 				"gnn_pred": gnn_pred,
 				"llm_pred": llm_pred,
-				"prompt": prompts[idx] if idx < len(prompts) else None,
+				"prompt": llm_prompt,
 			}
-			if llm_raw_response is not None:
-				row["llm_raw_response"] = llm_raw_response
+			if llm_raw_response is not None or llm_raw_output is not None:
+				row["llm_raw_response"] = llm_raw_response if llm_raw_response is not None else llm_raw_output
+			if llm_error is not None:
+				row["llm_error"] = llm_error
 			comparisons.append(row)
 
 	grouped = {}
@@ -1374,7 +2029,11 @@ def run_evaluation_stage(config, extraction_records, llm_outputs):
 	return {
 		"summary": summary,
 		"comparisons": comparisons,
-		"paths": {"summary": results_summary_path, "raw": results_raw_path},
+		"paths": {
+			"summary": results_summary_path,
+			"raw": results_raw_path,
+			"llm_prompt_io": (llm_outputs.get("paths") or {}).get("llm_prompt_io"),
+		},
 	}
 
 
@@ -1395,6 +2054,8 @@ def run_evaluation_stage_experiments(config, extraction_records, experiment_outp
 					gnn_pred = prediction_bundle.get("predicted_class")
 					llm_output = llm_preds[idx] if idx < len(llm_preds) else None
 					llm_pred, llm_raw_response = _split_llm_prediction_output(llm_output)
+					llm_prompt, llm_raw_output = _extract_llm_prompt_and_raw_output(llm_output, prompts, idx)
+					llm_error = _extract_llm_error(llm_output)
 					row = {
 						"experiment": experiment,
 						"dataset": record["dataset"],
@@ -1404,10 +2065,12 @@ def run_evaluation_stage_experiments(config, extraction_records, experiment_outp
 						"target_class": prediction_bundle.get("target_class"),
 						"gnn_pred": gnn_pred,
 						"llm_pred": llm_pred,
-						"prompt": prompts[idx] if idx < len(prompts) else None,
+						"prompt": llm_prompt,
 					}
-					if llm_raw_response is not None:
-						row["llm_raw_response"] = llm_raw_response
+					if llm_raw_response is not None or llm_raw_output is not None:
+						row["llm_raw_response"] = llm_raw_response if llm_raw_response is not None else llm_raw_output
+					if llm_error is not None:
+						row["llm_error"] = llm_error
 					comparisons.append(row)
 
 			reconstruction_experiments = {
@@ -1422,8 +2085,21 @@ def run_evaluation_stage_experiments(config, extraction_records, experiment_outp
 					for idx, record in enumerate(extraction_records):
 						bundle = record.get("bundle") or {}
 						candidate_set = bundle.get("candidate_set") or {}
-						pred = llm_preds[idx] if idx < len(llm_preds) else None
-						predicted_neighbors = parse_neighbor_selection_response(str(pred))
+						candidate_ids = [int(v) for v in (candidate_set.get("candidates", []) or [])]
+						llm_output = llm_preds[idx] if idx < len(llm_preds) else None
+						llm_prompt, llm_raw_output = _extract_llm_prompt_and_raw_output(llm_output, prompts, idx)
+						llm_error = _extract_llm_error(llm_output)
+						raw_predicted_neighbors = parse_neighbor_selection_response(_llm_output_to_text(llm_raw_output))
+						predicted_neighbors = parse_neighbor_selection_response(
+							_llm_output_to_text(llm_raw_output),
+							allowed_ids=candidate_ids,
+						)
+						candidate_id_set = set(candidate_ids)
+						invalid_predicted_neighbors = [
+							int(value)
+							for value in raw_predicted_neighbors
+							if candidate_id_set and int(value) not in candidate_id_set
+						]
 						explainer_neighbors = bundle.get("explainer_neighbors", []) or []
 						row = {
 							"dataset": record["dataset"],
@@ -1433,18 +2109,31 @@ def run_evaluation_stage_experiments(config, extraction_records, experiment_outp
 							"true_neighbors": candidate_set.get("true_neighbors", []),
 							"explainer_neighbors": explainer_neighbors,
 							"predicted_neighbors": predicted_neighbors,
+							"prompt": llm_prompt,
+							"llm_raw_response": llm_raw_output,
 						}
+						if raw_predicted_neighbors != predicted_neighbors:
+							row["raw_predicted_neighbors"] = raw_predicted_neighbors
+							row["invalid_predicted_neighbors"] = invalid_predicted_neighbors
+						if llm_error is not None:
+							row["llm_error"] = llm_error
 						rows.append(row)
-						explainer_rows.append(
-							{
-								"dataset": record["dataset"],
-								"model": record["model"],
-								"llm": llm_name,
-								"target_node": record["target_node"],
-								"true_neighbors": explainer_neighbors,
-								"predicted_neighbors": predicted_neighbors,
-							}
-						)
+						explainer_row = {
+							"dataset": record["dataset"],
+							"model": record["model"],
+							"llm": llm_name,
+							"target_node": record["target_node"],
+							"true_neighbors": explainer_neighbors,
+							"predicted_neighbors": predicted_neighbors,
+							"prompt": llm_prompt,
+							"llm_raw_response": llm_raw_output,
+						}
+						if raw_predicted_neighbors != predicted_neighbors:
+							explainer_row["raw_predicted_neighbors"] = raw_predicted_neighbors
+							explainer_row["invalid_predicted_neighbors"] = invalid_predicted_neighbors
+						if llm_error is not None:
+							explainer_row["llm_error"] = llm_error
+						explainer_rows.append(explainer_row)
 
 				metrics = evaluate_reconstruction(rows)
 				explainer_metrics = evaluate_reconstruction(explainer_rows)
@@ -1466,6 +2155,7 @@ def run_evaluation_stage_experiments(config, extraction_records, experiment_outp
 						"raw": raw_path,
 						"explainer_summary": explainer_summary_path,
 						"explainer_raw": explainer_raw_path,
+						"llm_prompt_io": (payload.get("paths") or {}).get("llm_prompt_io"),
 					},
 				}
 				continue
@@ -1483,7 +2173,11 @@ def run_evaluation_stage_experiments(config, extraction_records, experiment_outp
 			results[experiment] = {
 				"summary": summary,
 				"comparisons": comparisons,
-				"paths": {"summary": summary_path, "raw": raw_path},
+				"paths": {
+					"summary": summary_path,
+					"raw": raw_path,
+					"llm_prompt_io": (payload.get("paths") or {}).get("llm_prompt_io"),
+				},
 			}
 			continue
 

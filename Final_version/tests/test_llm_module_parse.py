@@ -2,7 +2,7 @@ import unittest
 
 import LLM_Module as llm_module
 from Evalueation import compute_classification_metrics
-from LLM_Module import generate_response, parse_prediction, run_inference_all
+from LLM_Module import generate_response, parse_neighbor_selection_response, parse_prediction, run_inference_all
 
 
 class ParsePredictionTests(unittest.TestCase):
@@ -62,7 +62,56 @@ class ClassificationMetricTests(unittest.TestCase):
         self.assertEqual(rows[0]["llm_pred"], 2)
 
 
+class NeighborSelectionParseTests(unittest.TestCase):
+    def test_embedded_json_array_wins_over_prose_numbers(self):
+        response = (
+            "Use a threshold of 0.5.\n"
+            "```json\n"
+            '{"selected_neighbors": [18186, 89428], "confidence": 0.8}\n'
+            "```"
+        )
+        self.assertEqual(parse_neighbor_selection_response(response), [18186, 89428])
+
+    def test_truncated_array_can_still_be_filtered_to_candidates(self):
+        response = (
+            "Here is the JSON object:\n"
+            '{"selected_neighbors": [18186, 89428, 1983'
+        )
+        self.assertEqual(
+            parse_neighbor_selection_response(response, allowed_ids=[18186, 89428, 198399]),
+            [18186, 89428],
+        )
+
+    def test_selected_neighbors_phrase_is_parsed(self):
+        response = "The selected neighbors are [12, 34] with confidence 0.9."
+        self.assertEqual(parse_neighbor_selection_response(response, allowed_ids=[12, 34, 56]), [12, 34])
+
+    def test_unlabeled_prose_numbers_are_ignored(self):
+        response = "I used threshold 0.5 and selected 12 and 34 with confidence 0.9."
+        self.assertEqual(parse_neighbor_selection_response(response, allowed_ids=[12, 34, 56]), [])
+
+
 class GenerateResponseTests(unittest.TestCase):
+    def test_neighbor_selection_prompt_includes_candidate_context(self):
+        template = (
+            "Target:\n{embedding}\n"
+            "Target features:\n{target_features}\n"
+            "Candidates:\n{candidates}\n"
+            "Context:\n{candidate_context}"
+        )
+
+        prompt = llm_module.build_neighbor_selection_prompt(
+            "embedding: [0.1000]",
+            "12, 34",
+            template,
+            target_features_text="[1.0000, 2.0000]",
+            candidate_context_text="node 12: raw_features=[1.0000]; embedding=[0.2000]",
+        )
+
+        self.assertIn("Target features:\n[1.0000, 2.0000]", prompt)
+        self.assertIn("Candidates:\n12, 34", prompt)
+        self.assertIn("node 12: raw_features=[1.0000]; embedding=[0.2000]", prompt)
+
     def test_chat_template_tensor_output_can_be_decoded_and_parsed(self):
         class TensorChatTokenizer:
             chat_template = "{% for message in messages %}{{ message.content }}{% endfor %}"
@@ -138,6 +187,37 @@ class GenerateResponseTests(unittest.TestCase):
 
         self.assertEqual(outputs["fake-model"][0]["raw_response"], "I choose 0.")
         self.assertEqual(outputs["fake-model"][0]["parsed_prediction"], 0)
+
+    def test_run_inference_can_log_errors_and_continue(self):
+        class TensorChatTokenizer:
+            chat_template = "{% for message in messages %}{{ message.content }}{% endfor %}"
+            pad_token_id = 0
+            pad_token = "<pad>"
+            eos_token = "</s>"
+
+            def apply_chat_template(self, *args, **kwargs):
+                return llm_module.torch.tensor([[10, 11]], dtype=llm_module.torch.long)
+
+        class FailingModel:
+            def generate(self, input_ids, attention_mask=None, **kwargs):
+                raise RuntimeError("synthetic failure")
+
+        original_load_llm = llm_module.load_llm
+        try:
+            llm_module.load_llm = lambda model_name, device: (TensorChatTokenizer(), FailingModel())
+            outputs = run_inference_all(
+                ["fake-model"],
+                ["prompt"],
+                "cpu",
+                parse_predictions=False,
+                continue_on_error=True,
+            )
+        finally:
+            llm_module.load_llm = original_load_llm
+
+        self.assertEqual(outputs["fake-model"][0]["raw_response"], None)
+        self.assertEqual(outputs["fake-model"][0]["error"]["type"], "RuntimeError")
+        self.assertIn("synthetic failure", outputs["fake-model"][0]["error"]["message"])
 
     def test_run_inference_supports_batched_prompts(self):
         class BatchTokenizer:

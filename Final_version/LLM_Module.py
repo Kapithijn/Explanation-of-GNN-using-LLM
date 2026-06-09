@@ -4,6 +4,7 @@ import numpy as np
 from typing import Tuple, Dict, List, Optional, Any
 import re
 import json
+import gc
 Top_K = 5  # Number of top edges/features to include in explanations
 if torch.cuda.is_available():
     device = "cuda"
@@ -143,29 +144,94 @@ def build_raw_reasoning_prompt(raw_features_text: str, neighbor_table_text: str,
     )
 
 
-def build_neighbor_selection_prompt(embedding_text: str, candidate_text: str, template: str):
+def build_neighbor_selection_prompt(
+    embedding_text: str,
+    candidate_text: str,
+    template: str,
+    target_features_text: str = "(unavailable)",
+    candidate_context_text: str = "(unavailable)",
+):
     """Build a prompt for constrained neighbor selection (1-hop reconstruction)."""
-    return template.format(embedding=embedding_text, candidates=candidate_text)
+    return template.format(
+        embedding=embedding_text,
+        candidates=candidate_text,
+        target_features=target_features_text,
+        candidate_context=candidate_context_text,
+    )
 
 
-def parse_neighbor_selection_response(response: str):
-    """Parse a JSON-like neighbor selection response."""
+def _deduplicate_ints(values):
+    """Return ints in first-seen order, dropping duplicates and invalid values."""
+    seen = set()
+    cleaned = []
+    for value in values:
+        try:
+            int_value = int(value)
+        except Exception:
+            continue
+        if int_value in seen:
+            continue
+        seen.add(int_value)
+        cleaned.append(int_value)
+    return cleaned
+
+
+def _filter_allowed_ids(values, allowed_ids=None):
+    cleaned = _deduplicate_ints(values)
+    if allowed_ids is None:
+        return cleaned
+    allowed = {int(v) for v in (allowed_ids or [])}
+    if not allowed:
+        return cleaned
+    return [value for value in cleaned if value in allowed]
+
+
+def parse_neighbor_selection_response(response: str, allowed_ids=None):
+    """Parse an explicit neighbor-selection response.
+
+    The reconstruction task asks for a selected_neighbors list. We only parse
+    numbers from that explicit field or an equivalent "selected neighbors" phrase,
+    because other prose often contains thresholds, confidences, dimensions, or
+    examples that are not node ids. When allowed_ids is provided, ids are also
+    constrained to the candidate set.
+    """
     if response is None:
         return []
     text = response.strip()
 
     try:
         parsed = json.loads(text)
-        if isinstance(parsed, dict) and "selected_neighbors" in parsed:
-            return [int(v) for v in parsed.get("selected_neighbors", [])]
+        if isinstance(parsed, dict):
+            for key in ("selected_neighbors", "selected_neighbours"):
+                if key in parsed:
+                    return _filter_allowed_ids(parsed.get(key, []), allowed_ids)
         if isinstance(parsed, list):
-            return [int(v) for v in parsed]
+            return _filter_allowed_ids(parsed, allowed_ids)
     except Exception:
         pass
 
-    # Fallback: extract integers from text
-    values = re.findall(r"\b\d+\b", text)
-    return [int(v) for v in values]
+    # Prefer the requested selected_neighbors array even when it is embedded in
+    # prose or fenced markdown. If generation was truncated before the closing
+    # bracket, parse the partial array up to the end of the response.
+    selected_match = re.search(
+        r'"?selected_neighbors"?\s*:\s*\[([^\]]*)',
+        text,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if selected_match:
+        values = re.findall(r"\b\d+\b", selected_match.group(1))
+        return _filter_allowed_ids(values, allowed_ids)
+
+    phrase_match = re.search(
+        r"selected\s+neighbou?rs\s*(?:are|:)\s*\[?([^\]\n\.]*)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if phrase_match:
+        values = re.findall(r"\b\d+\b", phrase_match.group(1))
+        return _filter_allowed_ids(values, allowed_ids)
+
+    return []
 
 
 
@@ -603,6 +669,16 @@ def _is_cuda_oom(exc: RuntimeError):
     return "out of memory" in message or "cuda oom" in message
 
 
+def _llm_error_result(exc: Exception):
+    return {
+        "raw_response": None,
+        "error": {
+            "type": exc.__class__.__name__,
+            "message": str(exc),
+        },
+    }
+
+
 def run_inference_all(
     model_names: List[str],
     prompts: List[str],
@@ -631,6 +707,7 @@ def run_inference_all(
     print(f"Running inference on device: {device}")
     gen_kwargs.pop("return_raw", None)
     gen_kwargs.pop("parse_predictions", None)
+    continue_on_error = bool(gen_kwargs.pop("continue_on_error", False))
     llm_batch_size = gen_kwargs.pop("llm_batch_size", None)
     if llm_batch_size is None:
         llm_batch_size = gen_kwargs.pop("batch_size", 1)
@@ -667,19 +744,35 @@ def run_inference_all(
                     ]
             except RuntimeError as exc:
                 if llm_batch_size <= 1 or device != "cuda" or not _is_cuda_oom(exc):
-                    raise
-                print(
-                    "Warning: CUDA out-of-memory during batched LLM inference. "
-                    "Retrying this batch one prompt at a time."
-                )
-                torch.cuda.empty_cache()
-                responses = [
-                    generate_response(model, tokenizer, prompt, device, **gen_kwargs)
-                    for prompt in prompt_batch
-                ]
+                    if continue_on_error:
+                        print(f"Warning: LLM inference failed; logging error and continuing: {exc}")
+                        if device == "cuda":
+                            torch.cuda.empty_cache()
+                        responses = [_llm_error_result(exc) for _ in prompt_batch]
+                    else:
+                        raise
+                else:
+                    print(
+                        "Warning: CUDA out-of-memory during batched LLM inference. "
+                        "Retrying this batch one prompt at a time."
+                    )
+                    torch.cuda.empty_cache()
+                    responses = []
+                    for prompt in prompt_batch:
+                        try:
+                            responses.append(generate_response(model, tokenizer, prompt, device, **gen_kwargs))
+                        except RuntimeError as single_exc:
+                            if not continue_on_error:
+                                raise
+                            print(f"Warning: LLM inference failed for one prompt; logging error and continuing: {single_exc}")
+                            if device == "cuda":
+                                torch.cuda.empty_cache()
+                            responses.append(_llm_error_result(single_exc))
 
             for response in responses:
-                if parse_predictions:
+                if isinstance(response, dict) and "error" in response:
+                    result = response
+                elif parse_predictions:
                     parsed = parse_prediction(response)
                     if return_raw:
                         result = {
@@ -710,6 +803,7 @@ def run_inference_all(
             torch.cuda.empty_cache()
         elif device == "mps":
             torch.mps.empty_cache()
+        gc.collect()
     if progress_bar is not None:
         progress_bar.close()
     return results
