@@ -26,6 +26,9 @@ DEVICE="${DEVICE:-cuda}"
 SEED="${SEED:-42}"
 MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-128}"
 LLM_BATCH_SIZE="${LLM_BATCH_SIZE:-1}"
+THINKING_BUDGET="${THINKING_BUDGET:-}"
+DISABLE_THINKING="${DISABLE_THINKING:-false}"
+ENABLE_THINKING="${ENABLE_THINKING:-false}"
 MAX_CANDIDATES="${MAX_CANDIDATES:-503}"
 CANDIDATE_CONTEXT_MODE="${CANDIDATE_CONTEXT_MODE:-pca}"
 CANDIDATE_PCA_COMPONENTS="${CANDIDATE_PCA_COMPONENTS:-16}"
@@ -98,6 +101,27 @@ case "${CONTINUE_ON_LLM_ERROR,,}" in
         ;;
 esac
 
+THINKING_BUDGET_ARGS=()
+if [ -n "$THINKING_BUDGET" ]; then
+    THINKING_BUDGET_ARGS=(--thinking-budget "$THINKING_BUDGET")
+fi
+
+ENABLE_THINKING_ARGS=()
+case "${ENABLE_THINKING,,}" in
+    1|true|yes|y)
+        ENABLE_THINKING_ARGS=(--enable-thinking)
+        ;;
+esac
+
+DISABLE_THINKING_ARGS=()
+case "${DISABLE_THINKING,,}" in
+    1|true|yes|y)
+        DISABLE_THINKING_ARGS=(--disable-thinking)
+        ENABLE_THINKING_ARGS=()
+        THINKING_BUDGET_ARGS=()
+        ;;
+esac
+
 python -m py_compile \
     Final_version/main.py \
     Final_version/LLM_Module.py \
@@ -119,6 +143,9 @@ python Final_version/main.py --dry-run \
     --num-runs 1 \
     --max-new-tokens "$MAX_NEW_TOKENS" \
     --llm-batch-size "$LLM_BATCH_SIZE" \
+    "${ENABLE_THINKING_ARGS[@]}" \
+    "${THINKING_BUDGET_ARGS[@]}" \
+    "${DISABLE_THINKING_ARGS[@]}" \
     --reconstruction-max-candidates "$MAX_CANDIDATES" \
     --candidate-context-mode "$CANDIDATE_CONTEXT_MODE" \
     --candidate-pca-components "$CANDIDATE_PCA_COMPONENTS" \
@@ -145,6 +172,9 @@ fi
     --num-runs 1 \
     --max-new-tokens "$MAX_NEW_TOKENS" \
     --llm-batch-size "$LLM_BATCH_SIZE" \
+    "${ENABLE_THINKING_ARGS[@]}" \
+    "${THINKING_BUDGET_ARGS[@]}" \
+    "${DISABLE_THINKING_ARGS[@]}" \
     --reconstruction-max-candidates "$MAX_CANDIDATES" \
     --candidate-context-mode "$CANDIDATE_CONTEXT_MODE" \
     --candidate-pca-components "$CANDIDATE_PCA_COMPONENTS" \

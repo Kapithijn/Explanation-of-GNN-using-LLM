@@ -210,24 +210,27 @@ def parse_neighbor_selection_response(response: str, allowed_ids=None):
     except Exception:
         pass
 
-    # Prefer the requested selected_neighbors array even when it is embedded in
-    # prose or fenced markdown. If generation was truncated before the closing
-    # bracket, parse the partial array up to the end of the response.
-    selected_match = re.search(
+    # Prefer the final selected_neighbors array. Thinking models often repeat
+    # the requested schema before the actual answer, so the first occurrence can
+    # be an example like {"selected_neighbors": []}. If generation was truncated
+    # before the closing bracket, parse the partial final array.
+    selected_matches = list(re.finditer(
         r'"?selected_neighbors"?\s*:\s*\[([^\]]*)',
         text,
         flags=re.IGNORECASE | re.DOTALL,
-    )
-    if selected_match:
+    ))
+    if selected_matches:
+        selected_match = selected_matches[-1]
         values = re.findall(r"\b\d+\b", selected_match.group(1))
         return _filter_allowed_ids(values, allowed_ids)
 
-    phrase_match = re.search(
+    phrase_matches = list(re.finditer(
         r"selected\s+neighbou?rs\s*(?:are|:)\s*\[?([^\]\n\.]*)",
         text,
         flags=re.IGNORECASE,
-    )
-    if phrase_match:
+    ))
+    if phrase_matches:
+        phrase_match = phrase_matches[-1]
         values = re.findall(r"\b\d+\b", phrase_match.group(1))
         return _filter_allowed_ids(values, allowed_ids)
 
@@ -380,13 +383,36 @@ def _generate_with_sampling_fallback(model, input_ids, attention_mask, generatio
         )
 
 
-def _format_prompt_for_generation(tokenizer, prompt: str):
+def _apply_chat_template(tokenizer, messages, disable_thinking=False, enable_thinking=False, thinking_budget=None, **kwargs):
+    """Apply a tokenizer chat template with optional Qwen thinking controls."""
+    template_kwargs = dict(kwargs)
+    if disable_thinking:
+        template_kwargs["enable_thinking"] = False
+    elif enable_thinking or thinking_budget is not None:
+        template_kwargs["enable_thinking"] = True
+        if thinking_budget is not None:
+            template_kwargs["thinking_budget"] = int(thinking_budget)
+
+    try:
+        return tokenizer.apply_chat_template(messages, **template_kwargs)
+    except TypeError:
+        # Older tokenizers may not accept enable_thinking/thinking_budget.
+        template_kwargs.pop("enable_thinking", None)
+        template_kwargs.pop("thinking_budget", None)
+        return tokenizer.apply_chat_template(messages, **template_kwargs)
+
+
+def _format_prompt_for_generation(tokenizer, prompt: str, disable_thinking=False, enable_thinking=False, thinking_budget=None):
     """Apply chat template as text so prompts can be batch-tokenized."""
     if hasattr(tokenizer, "apply_chat_template") and getattr(tokenizer, "chat_template", None):
         messages = [{"role": "user", "content": prompt}]
         try:
-            formatted = tokenizer.apply_chat_template(
+            formatted = _apply_chat_template(
+                tokenizer,
                 messages,
+                disable_thinking=disable_thinking,
+                enable_thinking=enable_thinking,
+                thinking_budget=thinking_budget,
                 tokenize=False,
                 add_generation_prompt=True,
             )
@@ -414,11 +440,18 @@ def generate_response(model, tokenizer, prompt: str, device: str, **gen_kwargs):
     # For instruct/chat-tuned models (e.g., Qwen-Instruct), wrapping the prompt
     # in the tokenizer's chat template is essential for predictable behavior.
     inputs = None
+    disable_thinking = bool(gen_kwargs.pop("disable_thinking", False))
+    enable_thinking = bool(gen_kwargs.pop("enable_thinking", False))
+    thinking_budget = gen_kwargs.pop("thinking_budget", None)
     if hasattr(tokenizer, "apply_chat_template") and getattr(tokenizer, "chat_template", None):
         messages = [{"role": "user", "content": prompt}]
         try:
-            inputs = tokenizer.apply_chat_template(
+            inputs = _apply_chat_template(
+                tokenizer,
                 messages,
+                disable_thinking=disable_thinking,
+                enable_thinking=enable_thinking,
+                thinking_budget=thinking_budget,
                 tokenize=True,
                 add_generation_prompt=True,
                 return_tensors="pt",
@@ -426,8 +459,12 @@ def generate_response(model, tokenizer, prompt: str, device: str, **gen_kwargs):
         except Exception:
             # Compatibility fallback for older/different transformers signatures.
             try:
-                formatted_prompt = tokenizer.apply_chat_template(
+                formatted_prompt = _apply_chat_template(
+                    tokenizer,
                     messages,
+                    disable_thinking=disable_thinking,
+                    enable_thinking=enable_thinking,
+                    thinking_budget=thinking_budget,
                     tokenize=False,
                     add_generation_prompt=True,
                 )
@@ -465,7 +502,19 @@ def generate_responses_batch(model, tokenizer, prompts: List[str], device: str, 
     if len(prompts) == 1:
         return [generate_response(model, tokenizer, prompts[0], device, **gen_kwargs)]
 
-    formatted_prompts = [_format_prompt_for_generation(tokenizer, prompt) for prompt in prompts]
+    disable_thinking = bool(gen_kwargs.pop("disable_thinking", False))
+    enable_thinking = bool(gen_kwargs.pop("enable_thinking", False))
+    thinking_budget = gen_kwargs.pop("thinking_budget", None)
+    formatted_prompts = [
+        _format_prompt_for_generation(
+            tokenizer,
+            prompt,
+            disable_thinking=disable_thinking,
+            enable_thinking=enable_thinking,
+            thinking_budget=thinking_budget,
+        )
+        for prompt in prompts
+    ]
 
     old_padding_side = getattr(tokenizer, "padding_side", None)
     if hasattr(tokenizer, "padding_side"):

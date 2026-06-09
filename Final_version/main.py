@@ -104,6 +104,27 @@ def parse_args(argv=None):
 		help="Number of prompts to generate per LLM batch (1 keeps sequential inference).",
 	)
 	parser.add_argument(
+		"--thinking-budget",
+		type=int,
+		default=None,
+		help=(
+			"Optional Qwen chat-template thinking budget. Only takes effect together "
+			"with --enable-thinking because thinking is disabled by default."
+		),
+	)
+	parser.add_argument(
+		"--disable-thinking",
+		action="store_true",
+		default=None,
+		help="Disable Qwen chat-template thinking mode when supported by the tokenizer.",
+	)
+	parser.add_argument(
+		"--enable-thinking",
+		action="store_true",
+		default=None,
+		help="Explicitly enable Qwen chat-template thinking mode when supported by the tokenizer.",
+	)
+	parser.add_argument(
 		"--reconstruction-max-candidates",
 		type=int,
 		default=None,
@@ -363,6 +384,7 @@ def default_config():
 		"generation": {
 			"max_new_tokens": 256,
 			"llm_batch_size": 1,
+			"disable_thinking": True,
 			"continue_on_error": False,
 		},
 		"large_graph_cpu_fallback": True,
@@ -404,6 +426,26 @@ def apply_cli_overrides(config, args):
 		if not isinstance(generation, dict):
 			generation = {}
 		generation["llm_batch_size"] = max(1, int(args.llm_batch_size))
+		config["generation"] = generation
+	if getattr(args, "thinking_budget", None) is not None:
+		generation = config.get("generation")
+		if not isinstance(generation, dict):
+			generation = {}
+		generation["thinking_budget"] = max(1, int(args.thinking_budget))
+		config["generation"] = generation
+	if getattr(args, "enable_thinking", None):
+		generation = config.get("generation")
+		if not isinstance(generation, dict):
+			generation = {}
+		generation["enable_thinking"] = True
+		generation["disable_thinking"] = False
+		config["generation"] = generation
+	if getattr(args, "disable_thinking", None):
+		generation = config.get("generation")
+		if not isinstance(generation, dict):
+			generation = {}
+		generation.pop("thinking_budget", None)
+		generation["disable_thinking"] = True
 		config["generation"] = generation
 	if getattr(args, "reconstruction_max_candidates", None) is not None:
 		reconstruction = config.get("reconstruction")

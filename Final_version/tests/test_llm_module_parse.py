@@ -90,6 +90,16 @@ class NeighborSelectionParseTests(unittest.TestCase):
         response = "I used threshold 0.5 and selected 12 and 34 with confidence 0.9."
         self.assertEqual(parse_neighbor_selection_response(response, allowed_ids=[12, 34, 56]), [])
 
+    def test_thinking_schema_echo_does_not_win_over_final_answer(self):
+        response = (
+            "Thinking Process:\n"
+            "The requested output format is {\"selected_neighbors\": [], \"confidence\": 0.0}.\n"
+            "Now compare candidate ids.\n\n"
+            "Final answer:\n"
+            "{\"selected_neighbors\": [12, 34], \"confidence\": 0.6}"
+        )
+        self.assertEqual(parse_neighbor_selection_response(response, allowed_ids=[12, 34, 56]), [12, 34])
+
 
 class GenerateResponseTests(unittest.TestCase):
     def test_neighbor_selection_prompt_includes_candidate_context(self):
@@ -132,6 +142,91 @@ class GenerateResponseTests(unittest.TestCase):
 
         response = generate_response(FakeModel(), TensorChatTokenizer(), "prompt", "cpu")
         self.assertEqual(parse_prediction(response), 1)
+
+    def test_chat_template_allows_thinking_by_default(self):
+        class ThinkingTokenizer:
+            chat_template = "{% for message in messages %}{{ message.content }}{% endfor %}"
+            pad_token_id = 0
+            pad_token = "<pad>"
+            eos_token = "</s>"
+
+            def __init__(self):
+                self.enable_thinking_values = []
+
+            def apply_chat_template(self, *args, **kwargs):
+                self.enable_thinking_values.append(kwargs.get("enable_thinking"))
+                return llm_module.torch.tensor([[10, 11]], dtype=llm_module.torch.long)
+
+            def decode(self, generated_ids, skip_special_tokens=True):
+                return "The predicted class is 1"
+
+        class FakeModel:
+            def generate(self, input_ids, attention_mask=None, **kwargs):
+                next_token = llm_module.torch.tensor([[99]], dtype=llm_module.torch.long, device=input_ids.device)
+                return llm_module.torch.cat([input_ids, next_token], dim=1)
+
+        tokenizer = ThinkingTokenizer()
+        response = generate_response(FakeModel(), tokenizer, "prompt", "cpu")
+
+        self.assertEqual(parse_prediction(response), 1)
+        self.assertEqual(tokenizer.enable_thinking_values[0], None)
+
+    def test_chat_template_can_disable_thinking_when_requested(self):
+        class ThinkingTokenizer:
+            chat_template = "{% for message in messages %}{{ message.content }}{% endfor %}"
+            pad_token_id = 0
+            pad_token = "<pad>"
+            eos_token = "</s>"
+
+            def __init__(self):
+                self.enable_thinking_values = []
+
+            def apply_chat_template(self, *args, **kwargs):
+                self.enable_thinking_values.append(kwargs.get("enable_thinking"))
+                return llm_module.torch.tensor([[10, 11]], dtype=llm_module.torch.long)
+
+            def decode(self, generated_ids, skip_special_tokens=True):
+                return "The predicted class is 1"
+
+        class FakeModel:
+            def generate(self, input_ids, attention_mask=None, **kwargs):
+                next_token = llm_module.torch.tensor([[99]], dtype=llm_module.torch.long, device=input_ids.device)
+                return llm_module.torch.cat([input_ids, next_token], dim=1)
+
+        tokenizer = ThinkingTokenizer()
+        response = generate_response(FakeModel(), tokenizer, "prompt", "cpu", disable_thinking=True)
+
+        self.assertEqual(parse_prediction(response), 1)
+        self.assertEqual(tokenizer.enable_thinking_values[0], False)
+
+    def test_chat_template_can_pass_thinking_budget(self):
+        class ThinkingTokenizer:
+            chat_template = "{% for message in messages %}{{ message.content }}{% endfor %}"
+            pad_token_id = 0
+            pad_token = "<pad>"
+            eos_token = "</s>"
+
+            def __init__(self):
+                self.kwargs_seen = []
+
+            def apply_chat_template(self, *args, **kwargs):
+                self.kwargs_seen.append(dict(kwargs))
+                return llm_module.torch.tensor([[10, 11]], dtype=llm_module.torch.long)
+
+            def decode(self, generated_ids, skip_special_tokens=True):
+                return "The predicted class is 1"
+
+        class FakeModel:
+            def generate(self, input_ids, attention_mask=None, **kwargs):
+                next_token = llm_module.torch.tensor([[99]], dtype=llm_module.torch.long, device=input_ids.device)
+                return llm_module.torch.cat([input_ids, next_token], dim=1)
+
+        tokenizer = ThinkingTokenizer()
+        response = generate_response(FakeModel(), tokenizer, "prompt", "cpu", thinking_budget=64)
+
+        self.assertEqual(parse_prediction(response), 1)
+        self.assertEqual(tokenizer.kwargs_seen[0].get("enable_thinking"), True)
+        self.assertEqual(tokenizer.kwargs_seen[0].get("thinking_budget"), 64)
 
     def test_run_inference_can_return_raw_text_for_reconstruction(self):
         class TensorChatTokenizer:
