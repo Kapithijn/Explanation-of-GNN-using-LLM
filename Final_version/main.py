@@ -2079,6 +2079,34 @@ def run_evaluation_stage(config, extraction_records, llm_outputs):
 	}
 
 
+def _build_reconstruction_group_summaries(rows):
+	"""Return flat reconstruction metrics grouped for plotting."""
+	group_specs = [
+		("dataset", "model", "llm"),
+		("dataset", "model"),
+		("dataset", "llm"),
+		("model",),
+		("llm",),
+	]
+	summaries = []
+	for group_fields in group_specs:
+		groups = {}
+		for row in rows:
+			key = tuple(str(row.get(field, "unknown")) for field in group_fields)
+			groups.setdefault(key, []).append(row)
+		for key, group_rows in sorted(groups.items(), key=lambda item: item[0]):
+			metrics = evaluate_reconstruction(group_rows)
+			summary = {
+				"group_by": "+".join(group_fields),
+				"n": len(group_rows),
+			}
+			for field, value in zip(group_fields, key):
+				summary[field] = value
+			summary.update(metrics)
+			summaries.append(summary)
+	return summaries
+
+
 def run_evaluation_stage_experiments(config, extraction_records, experiment_outputs):
 	"""Evaluate each experiment branch and save results."""
 	output_dir = Path(str(config.get("output_dir", "outputs")))
@@ -2179,17 +2207,33 @@ def run_evaluation_stage_experiments(config, extraction_records, experiment_outp
 
 				metrics = evaluate_reconstruction(rows)
 				explainer_metrics = evaluate_reconstruction(explainer_rows)
+				grouped_metrics = _build_reconstruction_group_summaries(rows)
+				explainer_grouped_metrics = _build_reconstruction_group_summaries(explainer_rows)
 				summary_path = str(output_dir / f"results_summary_{experiment}.json")
 				raw_path = str(output_dir / f"results_raw_{experiment}.json")
 				explainer_summary_path = str(output_dir / f"results_summary_{experiment}_explainer.json")
 				explainer_raw_path = str(output_dir / f"results_raw_{experiment}_explainer.json")
+				grouped_summary_path = str(output_dir / f"results_summary_{experiment}_grouped.json")
+				grouped_summary_csv_path = str(output_dir / f"results_summary_{experiment}_grouped.csv")
+				explainer_grouped_summary_path = str(
+					output_dir / f"results_summary_{experiment}_explainer_grouped.json"
+				)
+				explainer_grouped_summary_csv_path = str(
+					output_dir / f"results_summary_{experiment}_explainer_grouped.csv"
+				)
 				save_results(metrics, summary_path, fmt="json")
 				save_results(rows, raw_path, fmt="json")
 				save_results(explainer_metrics, explainer_summary_path, fmt="json")
 				save_results(explainer_rows, explainer_raw_path, fmt="json")
+				save_results(grouped_metrics, grouped_summary_path, fmt="json")
+				save_results(grouped_metrics, grouped_summary_csv_path, fmt="csv")
+				save_results(explainer_grouped_metrics, explainer_grouped_summary_path, fmt="json")
+				save_results(explainer_grouped_metrics, explainer_grouped_summary_csv_path, fmt="csv")
 				results[experiment] = {
 					"summary": metrics,
 					"explainer_summary": explainer_metrics,
+					"grouped_summary": grouped_metrics,
+					"explainer_grouped_summary": explainer_grouped_metrics,
 					"comparisons": rows,
 					"explainer_comparisons": explainer_rows,
 					"paths": {
@@ -2197,6 +2241,10 @@ def run_evaluation_stage_experiments(config, extraction_records, experiment_outp
 						"raw": raw_path,
 						"explainer_summary": explainer_summary_path,
 						"explainer_raw": explainer_raw_path,
+						"grouped_summary": grouped_summary_path,
+						"grouped_summary_csv": grouped_summary_csv_path,
+						"explainer_grouped_summary": explainer_grouped_summary_path,
+						"explainer_grouped_summary_csv": explainer_grouped_summary_csv_path,
 						"llm_prompt_io": (payload.get("paths") or {}).get("llm_prompt_io"),
 					},
 				}

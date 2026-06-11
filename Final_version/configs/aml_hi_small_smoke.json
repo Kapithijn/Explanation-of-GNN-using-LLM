@@ -5,7 +5,7 @@
   "experiments": ["reconstruction_1hop"],
   "dataset_kwargs": {
     "ibm_aml_hi_small": {
-      "max_rows": 20000,
+      "max_rows": null,
       "max_edges_per_account": 100,
       "cache_processed": true
     }
