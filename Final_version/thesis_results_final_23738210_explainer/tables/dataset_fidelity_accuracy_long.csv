@@ -1,0 +1,181 @@
+dataset,GNN,LLM,experiment,Accuracy
+dgraphfin,GAT,Qwen 2.5 3B,Fidelity embedding,0.0
+dgraphfin,GAT,Qwen 3.5 27B,Fidelity embedding,0.358
+dgraphfin,GAT,Qwen 3.5 35B A3B,Fidelity embedding,0.256
+dgraphfin,GAT,Qwen 3.5 4B,Fidelity embedding,0.056
+dgraphfin,GAT,Qwen 3.5 9B,Fidelity embedding,0.006
+dgraphfin,GCN,Qwen 2.5 3B,Fidelity embedding,0.002
+dgraphfin,GCN,Qwen 3.5 27B,Fidelity embedding,0.358
+dgraphfin,GCN,Qwen 3.5 35B A3B,Fidelity embedding,0.438
+dgraphfin,GCN,Qwen 3.5 4B,Fidelity embedding,0.35
+dgraphfin,GCN,Qwen 3.5 9B,Fidelity embedding,0.14
+dgraphfin,GIN,Qwen 2.5 3B,Fidelity embedding,0.0
+dgraphfin,GIN,Qwen 3.5 27B,Fidelity embedding,0.358
+dgraphfin,GIN,Qwen 3.5 35B A3B,Fidelity embedding,0.458
+dgraphfin,GIN,Qwen 3.5 4B,Fidelity embedding,0.324
+dgraphfin,GIN,Qwen 3.5 9B,Fidelity embedding,0.244
+dgraphfin,GraphSAGE,Qwen 2.5 3B,Fidelity embedding,0.0
+dgraphfin,GraphSAGE,Qwen 3.5 27B,Fidelity embedding,0.358
+dgraphfin,GraphSAGE,Qwen 3.5 35B A3B,Fidelity embedding,0.422
+dgraphfin,GraphSAGE,Qwen 3.5 4B,Fidelity embedding,0.346
+dgraphfin,GraphSAGE,Qwen 3.5 9B,Fidelity embedding,0.14
+elliptic,GAT,Qwen 2.5 3B,Fidelity embedding,0.036000000000000004
+elliptic,GAT,Qwen 3.5 27B,Fidelity embedding,0.386
+elliptic,GAT,Qwen 3.5 35B A3B,Fidelity embedding,0.304
+elliptic,GAT,Qwen 3.5 4B,Fidelity embedding,0.072
+elliptic,GAT,Qwen 3.5 9B,Fidelity embedding,0.036000000000000004
+elliptic,GCN,Qwen 2.5 3B,Fidelity embedding,0.022
+elliptic,GCN,Qwen 3.5 27B,Fidelity embedding,0.372
+elliptic,GCN,Qwen 3.5 35B A3B,Fidelity embedding,0.454
+elliptic,GCN,Qwen 3.5 4B,Fidelity embedding,0.332
+elliptic,GCN,Qwen 3.5 9B,Fidelity embedding,0.12
+elliptic,GIN,Qwen 2.5 3B,Fidelity embedding,0.024
+elliptic,GIN,Qwen 3.5 27B,Fidelity embedding,0.38
+elliptic,GIN,Qwen 3.5 35B A3B,Fidelity embedding,0.498
+elliptic,GIN,Qwen 3.5 4B,Fidelity embedding,0.332
+elliptic,GIN,Qwen 3.5 9B,Fidelity embedding,0.284
+elliptic,GraphSAGE,Qwen 2.5 3B,Fidelity embedding,0.028
+elliptic,GraphSAGE,Qwen 3.5 27B,Fidelity embedding,0.382
+elliptic,GraphSAGE,Qwen 3.5 35B A3B,Fidelity embedding,0.47200000000000003
+elliptic,GraphSAGE,Qwen 3.5 4B,Fidelity embedding,0.324
+elliptic,GraphSAGE,Qwen 3.5 9B,Fidelity embedding,0.10400000000000001
+ibm_aml_hi_small,GAT,Qwen 2.5 3B,Fidelity embedding,0.0
+ibm_aml_hi_small,GAT,Qwen 3.5 27B,Fidelity embedding,0.022
+ibm_aml_hi_small,GAT,Qwen 3.5 35B A3B,Fidelity embedding,0.016
+ibm_aml_hi_small,GAT,Qwen 3.5 4B,Fidelity embedding,0.004
+ibm_aml_hi_small,GAT,Qwen 3.5 9B,Fidelity embedding,0.0
+ibm_aml_hi_small,GCN,Qwen 2.5 3B,Fidelity embedding,0.0
+ibm_aml_hi_small,GCN,Qwen 3.5 27B,Fidelity embedding,0.022
+ibm_aml_hi_small,GCN,Qwen 3.5 35B A3B,Fidelity embedding,0.022
+ibm_aml_hi_small,GCN,Qwen 3.5 4B,Fidelity embedding,0.022
+ibm_aml_hi_small,GCN,Qwen 3.5 9B,Fidelity embedding,0.008
+ibm_aml_hi_small,GIN,Qwen 2.5 3B,Fidelity embedding,0.0
+ibm_aml_hi_small,GIN,Qwen 3.5 27B,Fidelity embedding,0.022
+ibm_aml_hi_small,GIN,Qwen 3.5 35B A3B,Fidelity embedding,0.022
+ibm_aml_hi_small,GIN,Qwen 3.5 4B,Fidelity embedding,0.022
+ibm_aml_hi_small,GIN,Qwen 3.5 9B,Fidelity embedding,0.022
+ibm_aml_hi_small,GraphSAGE,Qwen 2.5 3B,Fidelity embedding,0.0
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 27B,Fidelity embedding,0.022
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 35B A3B,Fidelity embedding,0.022
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 4B,Fidelity embedding,0.022
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 9B,Fidelity embedding,0.018
+dgraphfin,GAT,Qwen 2.5 3B,Fidelity explainer,0.01
+dgraphfin,GAT,Qwen 3.5 27B,Fidelity explainer,0.14
+dgraphfin,GAT,Qwen 3.5 35B A3B,Fidelity explainer,0.16
+dgraphfin,GAT,Qwen 3.5 4B,Fidelity explainer,0.014
+dgraphfin,GAT,Qwen 3.5 9B,Fidelity explainer,0.0
+dgraphfin,GCN,Qwen 2.5 3B,Fidelity explainer,0.0
+dgraphfin,GCN,Qwen 3.5 27B,Fidelity explainer,0.362
+dgraphfin,GCN,Qwen 3.5 35B A3B,Fidelity explainer,0.398
+dgraphfin,GCN,Qwen 3.5 4B,Fidelity explainer,0.20600000000000002
+dgraphfin,GCN,Qwen 3.5 9B,Fidelity explainer,0.084
+dgraphfin,GIN,Qwen 2.5 3B,Fidelity explainer,0.0
+dgraphfin,GIN,Qwen 3.5 27B,Fidelity explainer,0.38
+dgraphfin,GIN,Qwen 3.5 35B A3B,Fidelity explainer,0.382
+dgraphfin,GIN,Qwen 3.5 4B,Fidelity explainer,0.158
+dgraphfin,GIN,Qwen 3.5 9B,Fidelity explainer,0.274
+dgraphfin,GraphSAGE,Qwen 2.5 3B,Fidelity explainer,0.0
+dgraphfin,GraphSAGE,Qwen 3.5 27B,Fidelity explainer,0.364
+dgraphfin,GraphSAGE,Qwen 3.5 35B A3B,Fidelity explainer,0.376
+dgraphfin,GraphSAGE,Qwen 3.5 4B,Fidelity explainer,0.24
+dgraphfin,GraphSAGE,Qwen 3.5 9B,Fidelity explainer,0.084
+elliptic,GAT,Qwen 2.5 3B,Fidelity explainer,0.048
+elliptic,GAT,Qwen 3.5 27B,Fidelity explainer,0.158
+elliptic,GAT,Qwen 3.5 35B A3B,Fidelity explainer,0.212
+elliptic,GAT,Qwen 3.5 4B,Fidelity explainer,0.042
+elliptic,GAT,Qwen 3.5 9B,Fidelity explainer,0.038
+elliptic,GCN,Qwen 2.5 3B,Fidelity explainer,0.022
+elliptic,GCN,Qwen 3.5 27B,Fidelity explainer,0.358
+elliptic,GCN,Qwen 3.5 35B A3B,Fidelity explainer,0.396
+elliptic,GCN,Qwen 3.5 4B,Fidelity explainer,0.2
+elliptic,GCN,Qwen 3.5 9B,Fidelity explainer,0.106
+elliptic,GIN,Qwen 2.5 3B,Fidelity explainer,0.024
+elliptic,GIN,Qwen 3.5 27B,Fidelity explainer,0.386
+elliptic,GIN,Qwen 3.5 35B A3B,Fidelity explainer,0.426
+elliptic,GIN,Qwen 3.5 4B,Fidelity explainer,0.258
+elliptic,GIN,Qwen 3.5 9B,Fidelity explainer,0.28800000000000003
+elliptic,GraphSAGE,Qwen 2.5 3B,Fidelity explainer,0.026
+elliptic,GraphSAGE,Qwen 3.5 27B,Fidelity explainer,0.368
+elliptic,GraphSAGE,Qwen 3.5 35B A3B,Fidelity explainer,0.414
+elliptic,GraphSAGE,Qwen 3.5 4B,Fidelity explainer,0.192
+elliptic,GraphSAGE,Qwen 3.5 9B,Fidelity explainer,0.08800000000000001
+ibm_aml_hi_small,GAT,Qwen 2.5 3B,Fidelity explainer,0.032
+ibm_aml_hi_small,GAT,Qwen 3.5 27B,Fidelity explainer,0.014
+ibm_aml_hi_small,GAT,Qwen 3.5 35B A3B,Fidelity explainer,0.016
+ibm_aml_hi_small,GAT,Qwen 3.5 4B,Fidelity explainer,0.0
+ibm_aml_hi_small,GAT,Qwen 3.5 9B,Fidelity explainer,0.0
+ibm_aml_hi_small,GCN,Qwen 2.5 3B,Fidelity explainer,0.0
+ibm_aml_hi_small,GCN,Qwen 3.5 27B,Fidelity explainer,0.022
+ibm_aml_hi_small,GCN,Qwen 3.5 35B A3B,Fidelity explainer,0.022
+ibm_aml_hi_small,GCN,Qwen 3.5 4B,Fidelity explainer,0.016
+ibm_aml_hi_small,GCN,Qwen 3.5 9B,Fidelity explainer,0.01
+ibm_aml_hi_small,GIN,Qwen 2.5 3B,Fidelity explainer,0.0
+ibm_aml_hi_small,GIN,Qwen 3.5 27B,Fidelity explainer,0.022
+ibm_aml_hi_small,GIN,Qwen 3.5 35B A3B,Fidelity explainer,0.022
+ibm_aml_hi_small,GIN,Qwen 3.5 4B,Fidelity explainer,0.022
+ibm_aml_hi_small,GIN,Qwen 3.5 9B,Fidelity explainer,0.022
+ibm_aml_hi_small,GraphSAGE,Qwen 2.5 3B,Fidelity explainer,0.0
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 27B,Fidelity explainer,0.022
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 35B A3B,Fidelity explainer,0.022
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 4B,Fidelity explainer,0.014
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 9B,Fidelity explainer,0.016
+dgraphfin,GAT,Qwen 2.5 3B,Fidelity raw graph,0.4
+dgraphfin,GAT,Qwen 3.5 27B,Fidelity raw graph,0.432
+dgraphfin,GAT,Qwen 3.5 35B A3B,Fidelity raw graph,0.82
+dgraphfin,GAT,Qwen 3.5 4B,Fidelity raw graph,0.8
+dgraphfin,GAT,Qwen 3.5 9B,Fidelity raw graph,0.78
+dgraphfin,GCN,Qwen 2.5 3B,Fidelity raw graph,0.396
+dgraphfin,GCN,Qwen 3.5 27B,Fidelity raw graph,0.432
+dgraphfin,GCN,Qwen 3.5 35B A3B,Fidelity raw graph,0.82
+dgraphfin,GCN,Qwen 3.5 4B,Fidelity raw graph,0.8
+dgraphfin,GCN,Qwen 3.5 9B,Fidelity raw graph,0.78
+dgraphfin,GIN,Qwen 2.5 3B,Fidelity raw graph,0.40399999999999997
+dgraphfin,GIN,Qwen 3.5 27B,Fidelity raw graph,0.43
+dgraphfin,GIN,Qwen 3.5 35B A3B,Fidelity raw graph,0.822
+dgraphfin,GIN,Qwen 3.5 4B,Fidelity raw graph,0.798
+dgraphfin,GIN,Qwen 3.5 9B,Fidelity raw graph,0.78
+dgraphfin,GraphSAGE,Qwen 2.5 3B,Fidelity raw graph,0.40800000000000003
+dgraphfin,GraphSAGE,Qwen 3.5 27B,Fidelity raw graph,0.43
+dgraphfin,GraphSAGE,Qwen 3.5 35B A3B,Fidelity raw graph,0.822
+dgraphfin,GraphSAGE,Qwen 3.5 4B,Fidelity raw graph,0.8
+dgraphfin,GraphSAGE,Qwen 3.5 9B,Fidelity raw graph,0.778
+elliptic,GAT,Qwen 2.5 3B,Fidelity raw graph,0.112
+elliptic,GAT,Qwen 3.5 27B,Fidelity raw graph,0.628
+elliptic,GAT,Qwen 3.5 35B A3B,Fidelity raw graph,0.896
+elliptic,GAT,Qwen 3.5 4B,Fidelity raw graph,0.194
+elliptic,GAT,Qwen 3.5 9B,Fidelity raw graph,0.546
+elliptic,GCN,Qwen 2.5 3B,Fidelity raw graph,0.10200000000000001
+elliptic,GCN,Qwen 3.5 27B,Fidelity raw graph,0.646
+elliptic,GCN,Qwen 3.5 35B A3B,Fidelity raw graph,0.916
+elliptic,GCN,Qwen 3.5 4B,Fidelity raw graph,0.17400000000000002
+elliptic,GCN,Qwen 3.5 9B,Fidelity raw graph,0.568
+elliptic,GIN,Qwen 2.5 3B,Fidelity raw graph,0.096
+elliptic,GIN,Qwen 3.5 27B,Fidelity raw graph,0.648
+elliptic,GIN,Qwen 3.5 35B A3B,Fidelity raw graph,0.912
+elliptic,GIN,Qwen 3.5 4B,Fidelity raw graph,0.178
+elliptic,GIN,Qwen 3.5 9B,Fidelity raw graph,0.558
+elliptic,GraphSAGE,Qwen 2.5 3B,Fidelity raw graph,0.102
+elliptic,GraphSAGE,Qwen 3.5 27B,Fidelity raw graph,0.634
+elliptic,GraphSAGE,Qwen 3.5 35B A3B,Fidelity raw graph,0.906
+elliptic,GraphSAGE,Qwen 3.5 4B,Fidelity raw graph,0.182
+elliptic,GraphSAGE,Qwen 3.5 9B,Fidelity raw graph,0.558
+ibm_aml_hi_small,GAT,Qwen 2.5 3B,Fidelity raw graph,0.854
+ibm_aml_hi_small,GAT,Qwen 3.5 27B,Fidelity raw graph,1.0
+ibm_aml_hi_small,GAT,Qwen 3.5 35B A3B,Fidelity raw graph,1.0
+ibm_aml_hi_small,GAT,Qwen 3.5 4B,Fidelity raw graph,0.17
+ibm_aml_hi_small,GAT,Qwen 3.5 9B,Fidelity raw graph,0.896
+ibm_aml_hi_small,GCN,Qwen 2.5 3B,Fidelity raw graph,0.854
+ibm_aml_hi_small,GCN,Qwen 3.5 27B,Fidelity raw graph,1.0
+ibm_aml_hi_small,GCN,Qwen 3.5 35B A3B,Fidelity raw graph,1.0
+ibm_aml_hi_small,GCN,Qwen 3.5 4B,Fidelity raw graph,0.17
+ibm_aml_hi_small,GCN,Qwen 3.5 9B,Fidelity raw graph,0.898
+ibm_aml_hi_small,GIN,Qwen 2.5 3B,Fidelity raw graph,0.854
+ibm_aml_hi_small,GIN,Qwen 3.5 27B,Fidelity raw graph,1.0
+ibm_aml_hi_small,GIN,Qwen 3.5 35B A3B,Fidelity raw graph,1.0
+ibm_aml_hi_small,GIN,Qwen 3.5 4B,Fidelity raw graph,0.17
+ibm_aml_hi_small,GIN,Qwen 3.5 9B,Fidelity raw graph,0.898
+ibm_aml_hi_small,GraphSAGE,Qwen 2.5 3B,Fidelity raw graph,0.854
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 27B,Fidelity raw graph,1.0
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 35B A3B,Fidelity raw graph,1.0
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 4B,Fidelity raw graph,0.17
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 9B,Fidelity raw graph,0.896

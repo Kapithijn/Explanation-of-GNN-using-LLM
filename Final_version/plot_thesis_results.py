@@ -88,6 +88,12 @@ TABLE_COLUMNS = {
     "reconstruction_1hop_no_gnn": "Recon no GNN",
 }
 
+EXPLAINER_RECONSTRUCTION_COLUMNS = {
+    "reconstruction_1hop": "GNNExplainer recon",
+    "reconstruction_1hop_embed_expl": "GNNExplainer recon with explainer",
+    "reconstruction_1hop_no_gnn": "GNNExplainer recon no GNN",
+}
+
 COLORS = {
     "blue": "#2F6DB2",
     "orange": "#E69F00",
@@ -587,12 +593,14 @@ def plot_heatmap_panels(
     experiment: str,
     title: str,
     datasets: list[str],
+    metric: str = "f1",
+    reference: str = "ground_truth",
 ) -> None:
     rows = [
         row
         for row in mean_rows
         if row.get("experiment") == experiment
-        and row.get("reference") == "ground_truth"
+        and row.get("reference") == reference
         and row.get("family") in {"classification", "reconstruction"}
     ]
     llms = ordered_unique([row.get("llm") for row in rows], LLM_ORDER)
@@ -606,7 +614,7 @@ def plot_heatmap_panels(
     fig.suptitle(title)
     for ax, dataset in zip(axes, datasets):
         panel_rows = [row for row in rows if row.get("dataset") == dataset]
-        values = matrix_from_rows(panel_rows, "llm", "model", "f1", llms, models)
+        values = matrix_from_rows(panel_rows, "llm", "model", metric, llms, models)
         draw_heatmap(
             ax,
             values,
@@ -619,11 +627,17 @@ def plot_heatmap_panels(
     save_figure(fig, out_path)
 
 
-def plot_reconstruction_baselines(mean_rows: list[dict[str, Any]], out_path: Path, datasets: list[str]) -> None:
+def plot_reconstruction_baselines(
+    mean_rows: list[dict[str, Any]],
+    out_path: Path,
+    datasets: list[str],
+    reference: str = "ground_truth",
+    title: str = "Best reconstruction F1 compared with baselines",
+) -> None:
     fig, axes = plt.subplots(1, len(datasets), figsize=(4.8 * len(datasets), 4.2), constrained_layout=True)
     if len(datasets) == 1:
         axes = [axes]
-    fig.suptitle("Best reconstruction F1 compared with baselines")
+    fig.suptitle(title)
     labels = ["Best LLM", "Random", "Cosine", "Feature"]
     colors = [COLORS["blue"], COLORS["gray"], COLORS["orange"], COLORS["green"]]
     for ax, dataset in zip(axes, datasets):
@@ -632,7 +646,7 @@ def plot_reconstruction_baselines(mean_rows: list[dict[str, Any]], out_path: Pat
             for row in mean_rows
             if row.get("dataset") == dataset
             and row.get("experiment") == "reconstruction_1hop"
-            and row.get("reference") == "ground_truth"
+            and row.get("reference") == reference
             and row.get("family") == "reconstruction"
         ]
         baseline_values = []
@@ -642,7 +656,7 @@ def plot_reconstruction_baselines(mean_rows: list[dict[str, Any]], out_path: Pat
                 for row in mean_rows
                 if row.get("dataset") == dataset
                 and row.get("experiment") == experiment
-                and row.get("reference") == "ground_truth"
+                and row.get("reference") == reference
                 and row.get("family") == "baseline"
             ]
             values = [value for value in values if math.isfinite(value)]
@@ -818,6 +832,164 @@ def make_dataset_tables(mean_rows: list[dict[str, Any]], out_dir: Path, datasets
         pivot.round(3).to_latex(tex_path, na_rep="", escape=True)
 
 
+def make_explainer_reconstruction_tables(mean_rows: list[dict[str, Any]], out_dir: Path, datasets: list[str]) -> None:
+    try:
+        import pandas as pd
+    except Exception:
+        pd = None
+
+    table_rows: list[dict[str, Any]] = []
+    for row in mean_rows:
+        if row.get("reference") != "explainer":
+            continue
+        if row.get("family") != "reconstruction":
+            continue
+        experiment = str(row.get("experiment"))
+        if experiment not in EXPLAINER_RECONSTRUCTION_COLUMNS:
+            continue
+        f1 = safe_float(row.get("f1"))
+        if not math.isfinite(f1):
+            continue
+        table_rows.append(
+            {
+                "dataset": row.get("dataset"),
+                "GNN": row.get("model"),
+                "LLM": short_llm(row.get("llm")),
+                "experiment": EXPLAINER_RECONSTRUCTION_COLUMNS[experiment],
+                "F1": f1,
+            }
+        )
+
+    ordered_cols = list(EXPLAINER_RECONSTRUCTION_COLUMNS.values())
+    if pd is None:
+        write_simple_csv(
+            out_dir / "tables" / "dataset_explainer_reconstruction_f1_long.csv",
+            table_rows,
+            ["dataset", "GNN", "LLM", "experiment", "F1"],
+        )
+        for dataset in datasets:
+            subset = [row for row in table_rows if row["dataset"] == dataset]
+            if not subset:
+                continue
+            combos = sorted(
+                {(row["GNN"], row["LLM"]) for row in subset},
+                key=lambda item: (
+                    GNN_ORDER.index(item[0]) if item[0] in GNN_ORDER else len(GNN_ORDER),
+                    item[1],
+                ),
+            )
+            values = {(row["GNN"], row["LLM"], row["experiment"]): row["F1"] for row in subset}
+            pivot_rows = []
+            for gnn, llm in combos:
+                pivot_row = {"GNN": gnn, "LLM": llm}
+                for col in ordered_cols:
+                    value = values.get((gnn, llm, col), math.nan)
+                    pivot_row[col] = "" if not math.isfinite(value) else round(value, 3)
+                pivot_rows.append(pivot_row)
+            write_simple_csv(
+                out_dir / "tables" / f"{dataset}_explainer_reconstruction_f1_table.csv",
+                pivot_rows,
+                ["GNN", "LLM"] + ordered_cols,
+            )
+        return
+
+    df = pd.DataFrame(table_rows)
+    if df.empty:
+        return
+    (out_dir / "tables").mkdir(parents=True, exist_ok=True)
+    df.to_csv(out_dir / "tables" / "dataset_explainer_reconstruction_f1_long.csv", index=False)
+    for dataset in datasets:
+        subset = df[df["dataset"] == dataset]
+        if subset.empty:
+            continue
+        pivot = subset.pivot_table(index=["GNN", "LLM"], columns="experiment", values="F1", aggfunc="mean")
+        pivot = pivot.reindex(columns=[col for col in ordered_cols if col in pivot.columns])
+        pivot = pivot.sort_index()
+        csv_path = out_dir / "tables" / f"{dataset}_explainer_reconstruction_f1_table.csv"
+        tex_path = out_dir / "tables" / f"{dataset}_explainer_reconstruction_f1_table.tex"
+        pivot.round(3).to_csv(csv_path)
+        pivot.round(3).to_latex(tex_path, na_rep="", escape=True)
+
+
+def make_fidelity_accuracy_tables(mean_rows: list[dict[str, Any]], out_dir: Path, datasets: list[str]) -> None:
+    try:
+        import pandas as pd
+    except Exception:
+        pd = None
+
+    table_rows: list[dict[str, Any]] = []
+    for row in mean_rows:
+        if row.get("reference") != "ground_truth":
+            continue
+        if row.get("family") != "classification":
+            continue
+        experiment = str(row.get("experiment"))
+        if experiment not in TABLE_COLUMNS:
+            continue
+        accuracy = safe_float(row.get("accuracy"))
+        if not math.isfinite(accuracy):
+            continue
+        table_rows.append(
+            {
+                "dataset": row.get("dataset"),
+                "GNN": row.get("model"),
+                "LLM": short_llm(row.get("llm")),
+                "experiment": TABLE_COLUMNS[experiment],
+                "Accuracy": accuracy,
+            }
+        )
+
+    ordered_cols = [TABLE_COLUMNS[experiment] for experiment in CLASSIFICATION_EXPERIMENTS]
+    if pd is None:
+        write_simple_csv(
+            out_dir / "tables" / "dataset_fidelity_accuracy_long.csv",
+            table_rows,
+            ["dataset", "GNN", "LLM", "experiment", "Accuracy"],
+        )
+        for dataset in datasets:
+            subset = [row for row in table_rows if row["dataset"] == dataset]
+            if not subset:
+                continue
+            combos = sorted(
+                {(row["GNN"], row["LLM"]) for row in subset},
+                key=lambda item: (
+                    GNN_ORDER.index(item[0]) if item[0] in GNN_ORDER else len(GNN_ORDER),
+                    item[1],
+                ),
+            )
+            values = {(row["GNN"], row["LLM"], row["experiment"]): row["Accuracy"] for row in subset}
+            pivot_rows = []
+            for gnn, llm in combos:
+                pivot_row = {"GNN": gnn, "LLM": llm}
+                for col in ordered_cols:
+                    value = values.get((gnn, llm, col), math.nan)
+                    pivot_row[col] = "" if not math.isfinite(value) else round(value, 3)
+                pivot_rows.append(pivot_row)
+            write_simple_csv(
+                out_dir / "tables" / f"{dataset}_fidelity_accuracy_table.csv",
+                pivot_rows,
+                ["GNN", "LLM"] + ordered_cols,
+            )
+        return
+
+    df = pd.DataFrame(table_rows)
+    if df.empty:
+        return
+    (out_dir / "tables").mkdir(parents=True, exist_ok=True)
+    df.to_csv(out_dir / "tables" / "dataset_fidelity_accuracy_long.csv", index=False)
+    for dataset in datasets:
+        subset = df[df["dataset"] == dataset]
+        if subset.empty:
+            continue
+        pivot = subset.pivot_table(index=["GNN", "LLM"], columns="experiment", values="Accuracy", aggfunc="mean")
+        pivot = pivot.reindex(columns=[col for col in ordered_cols if col in pivot.columns])
+        pivot = pivot.sort_index()
+        csv_path = out_dir / "tables" / f"{dataset}_fidelity_accuracy_table.csv"
+        tex_path = out_dir / "tables" / f"{dataset}_fidelity_accuracy_table.tex"
+        pivot.round(3).to_csv(csv_path)
+        pivot.round(3).to_latex(tex_path, na_rep="", escape=True)
+
+
 def make_best_tables(mean_rows: list[dict[str, Any]], out_dir: Path, datasets: list[str]) -> None:
     best_rows: list[dict[str, Any]] = []
     for dataset in datasets:
@@ -856,40 +1028,82 @@ def make_best_tables(mean_rows: list[dict[str, Any]], out_dir: Path, datasets: l
     )
 
 
-def make_baseline_table(mean_rows: list[dict[str, Any]], out_dir: Path, datasets: list[str]) -> None:
-    rows: list[dict[str, Any]] = []
+def make_best_explainer_reconstruction_table(mean_rows: list[dict[str, Any]], out_dir: Path, datasets: list[str]) -> None:
+    best_rows: list[dict[str, Any]] = []
     for dataset in datasets:
-        for experiment in ["reconstruction_1hop"] + BASELINE_EXPERIMENTS:
-            family = "reconstruction" if experiment == "reconstruction_1hop" else "baseline"
+        for experiment in RECONSTRUCTION_EXPERIMENTS:
             candidates = [
                 row
                 for row in mean_rows
                 if row.get("dataset") == dataset
                 and row.get("experiment") == experiment
-                and row.get("reference") == "ground_truth"
-                and row.get("family") == family
+                and row.get("reference") == "explainer"
+                and row.get("family") == "reconstruction"
                 and math.isfinite(safe_float(row.get("f1")))
             ]
             if not candidates:
                 continue
             best = max(candidates, key=lambda row: safe_float(row.get("f1")))
-            rows.append(
+            best_rows.append(
                 {
                     "dataset": dataset,
-                    "method": EXPERIMENT_LABELS[experiment],
+                    "experiment": experiment,
                     "GNN": best.get("model"),
-                    "LLM": best.get("llm") if family == "reconstruction" else "",
+                    "LLM": best.get("llm"),
                     "F1": safe_float(best.get("f1")),
                     "precision": safe_float(best.get("precision")),
                     "recall": safe_float(best.get("recall")),
                     "jaccard": safe_float(best.get("jaccard")),
+                    "replicates": best.get("replicates"),
+                    "n_total": best.get("n_total"),
                 }
             )
     write_simple_csv(
-        out_dir / "tables" / "baseline_comparison_best.csv",
-        rows,
-        ["dataset", "method", "GNN", "LLM", "F1", "precision", "recall", "jaccard"],
+        out_dir / "tables" / "best_by_dataset_explainer_reconstruction.csv",
+        best_rows,
+        ["dataset", "experiment", "GNN", "LLM", "F1", "precision", "recall", "jaccard", "replicates", "n_total"],
     )
+
+
+def make_baseline_table(mean_rows: list[dict[str, Any]], out_dir: Path, datasets: list[str]) -> None:
+    for reference, filename in [
+        ("ground_truth", "baseline_comparison_best.csv"),
+        ("explainer", "baseline_comparison_best_explainer.csv"),
+    ]:
+        rows: list[dict[str, Any]] = []
+        for dataset in datasets:
+            for experiment in ["reconstruction_1hop"] + BASELINE_EXPERIMENTS:
+                family = "reconstruction" if experiment == "reconstruction_1hop" else "baseline"
+                candidates = [
+                    row
+                    for row in mean_rows
+                    if row.get("dataset") == dataset
+                    and row.get("experiment") == experiment
+                    and row.get("reference") == reference
+                    and row.get("family") == family
+                    and math.isfinite(safe_float(row.get("f1")))
+                ]
+                if not candidates:
+                    continue
+                best = max(candidates, key=lambda row: safe_float(row.get("f1")))
+                rows.append(
+                    {
+                        "dataset": dataset,
+                        "reference": reference,
+                        "method": EXPERIMENT_LABELS[experiment],
+                        "GNN": best.get("model"),
+                        "LLM": best.get("llm") if family == "reconstruction" else "",
+                        "F1": safe_float(best.get("f1")),
+                        "precision": safe_float(best.get("precision")),
+                        "recall": safe_float(best.get("recall")),
+                        "jaccard": safe_float(best.get("jaccard")),
+                    }
+                )
+        write_simple_csv(
+            out_dir / "tables" / filename,
+            rows,
+            ["dataset", "reference", "method", "GNN", "LLM", "F1", "precision", "recall", "jaccard"],
+        )
 
 
 def write_readme(out_dir: Path, input_dirs: list[Path]) -> None:
@@ -909,9 +1123,16 @@ def write_readme(out_dir: Path, input_dirs: list[Path]) -> None:
             "- `summary_by_replicate_metrics.csv`: one metric row per run or seed.",
             "- `tables/*_experiment_f1_table.csv`: dataset tables for the thesis.",
             "- `tables/*_experiment_f1_table.tex`: LaTeX versions of the dataset tables.",
+            "- `tables/*_explainer_reconstruction_f1_table.csv`: GNNExplainer-subgraph reconstruction F1 tables.",
+            "- `tables/*_explainer_reconstruction_f1_table.tex`: LaTeX versions of the GNNExplainer reconstruction tables.",
+            "- `tables/*_fidelity_accuracy_table.csv`: dataset fidelity accuracy tables.",
+            "- `tables/*_fidelity_accuracy_table.tex`: LaTeX versions of the fidelity accuracy tables.",
             "- `figures/01_fidelity_f1_heatmap.png`: F1 heatmaps for fidelity.",
+            "- `figures/01b_fidelity_accuracy_heatmap.png`: accuracy heatmaps for fidelity.",
             "- `figures/02_neighbourhood_f1_heatmap.png`: F1 heatmaps for neighbourhood reconstruction.",
+            "- `figures/02b_explainer_reconstruction_f1_heatmap.png`: F1 heatmaps for GNNExplainer-subgraph reconstruction.",
             "- `figures/03_reconstruction_baselines.png`: best reconstruction method compared with baselines.",
+            "- `figures/03b_explainer_reconstruction_baselines.png`: best GNNExplainer reconstruction method compared with baselines.",
             "- `figures/04_reconstruction_precision_recall.png`: precision and recall scatter.",
             "- `figures/05_llm_behavior_rates.png`: parse and empty-output behavior.",
             "",
@@ -966,7 +1187,10 @@ def main() -> int:
     write_csv(out_dir / "summary_by_replicate_metrics.csv", by_replicate)
     write_csv(out_dir / "summary_mean_metrics.csv", mean_rows)
     make_dataset_tables(mean_rows, out_dir, args.datasets)
+    make_explainer_reconstruction_tables(mean_rows, out_dir, args.datasets)
+    make_fidelity_accuracy_tables(mean_rows, out_dir, args.datasets)
     make_best_tables(mean_rows, out_dir, args.datasets)
+    make_best_explainer_reconstruction_table(mean_rows, out_dir, args.datasets)
     make_baseline_table(mean_rows, out_dir, args.datasets)
 
     plot_heatmap_panels(
@@ -975,6 +1199,15 @@ def main() -> int:
         args.fidelity_experiment,
         "Fidelity F1 by dataset, GNN, and LLM",
         args.datasets,
+        metric="f1",
+    )
+    plot_heatmap_panels(
+        mean_rows,
+        figure_dir / "01b_fidelity_accuracy_heatmap.png",
+        args.fidelity_experiment,
+        "Fidelity accuracy by dataset, GNN, and LLM",
+        args.datasets,
+        metric="accuracy",
     )
     plot_heatmap_panels(
         mean_rows,
@@ -982,8 +1215,26 @@ def main() -> int:
         args.neighbourhood_experiment,
         "Neighbourhood reconstruction F1 by dataset, GNN, and LLM",
         args.datasets,
+        metric="f1",
+        reference="ground_truth",
+    )
+    plot_heatmap_panels(
+        mean_rows,
+        figure_dir / "02b_explainer_reconstruction_f1_heatmap.png",
+        args.neighbourhood_experiment,
+        "GNNExplainer-subgraph reconstruction F1 by dataset, GNN, and LLM",
+        args.datasets,
+        metric="f1",
+        reference="explainer",
     )
     plot_reconstruction_baselines(mean_rows, figure_dir / "03_reconstruction_baselines.png", args.datasets)
+    plot_reconstruction_baselines(
+        mean_rows,
+        figure_dir / "03b_explainer_reconstruction_baselines.png",
+        args.datasets,
+        reference="explainer",
+        title="Best GNNExplainer-subgraph reconstruction F1 compared with baselines",
+    )
     plot_precision_recall(mean_rows, figure_dir / "04_reconstruction_precision_recall.png", args.datasets)
     plot_behavior_rates(mean_rows, figure_dir / "05_llm_behavior_rates.png", args.datasets)
     write_readme(out_dir, input_dirs)

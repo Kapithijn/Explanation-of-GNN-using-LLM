@@ -1,0 +1,361 @@
+dataset,GNN,LLM,experiment,F1
+dgraphfin,GAT,Qwen 2.5 3B,Fidelity embedding,0.0
+dgraphfin,GAT,Qwen 3.5 27B,Fidelity embedding,0.0
+dgraphfin,GAT,Qwen 3.5 35B A3B,Fidelity embedding,0.0
+dgraphfin,GAT,Qwen 3.5 4B,Fidelity embedding,0.0
+dgraphfin,GAT,Qwen 3.5 9B,Fidelity embedding,0.0
+dgraphfin,GCN,Qwen 2.5 3B,Fidelity embedding,0.0
+dgraphfin,GCN,Qwen 3.5 27B,Fidelity embedding,0.0
+dgraphfin,GCN,Qwen 3.5 35B A3B,Fidelity embedding,0.0
+dgraphfin,GCN,Qwen 3.5 4B,Fidelity embedding,0.0
+dgraphfin,GCN,Qwen 3.5 9B,Fidelity embedding,0.0
+dgraphfin,GIN,Qwen 2.5 3B,Fidelity embedding,0.0
+dgraphfin,GIN,Qwen 3.5 27B,Fidelity embedding,0.0
+dgraphfin,GIN,Qwen 3.5 35B A3B,Fidelity embedding,0.0
+dgraphfin,GIN,Qwen 3.5 4B,Fidelity embedding,0.0
+dgraphfin,GIN,Qwen 3.5 9B,Fidelity embedding,0.0
+dgraphfin,GraphSAGE,Qwen 2.5 3B,Fidelity embedding,0.0
+dgraphfin,GraphSAGE,Qwen 3.5 27B,Fidelity embedding,0.0
+dgraphfin,GraphSAGE,Qwen 3.5 35B A3B,Fidelity embedding,0.0
+dgraphfin,GraphSAGE,Qwen 3.5 4B,Fidelity embedding,0.0
+dgraphfin,GraphSAGE,Qwen 3.5 9B,Fidelity embedding,0.0
+elliptic,GAT,Qwen 2.5 3B,Fidelity embedding,0.0691661279896574
+elliptic,GAT,Qwen 3.5 27B,Fidelity embedding,0.10055686910669098
+elliptic,GAT,Qwen 3.5 35B A3B,Fidelity embedding,0.0892575956237928
+elliptic,GAT,Qwen 3.5 4B,Fidelity embedding,0.07201254225343232
+elliptic,GAT,Qwen 3.5 9B,Fidelity embedding,0.06565248952456262
+elliptic,GCN,Qwen 2.5 3B,Fidelity embedding,0.04279903015561847
+elliptic,GCN,Qwen 3.5 27B,Fidelity embedding,0.061195269367918165
+elliptic,GCN,Qwen 3.5 35B A3B,Fidelity embedding,0.07084311668509699
+elliptic,GCN,Qwen 3.5 4B,Fidelity embedding,0.057324309982231494
+elliptic,GCN,Qwen 3.5 9B,Fidelity embedding,0.048369533380362456
+elliptic,GIN,Qwen 2.5 3B,Fidelity embedding,0.04675716440422323
+elliptic,GIN,Qwen 3.5 27B,Fidelity embedding,0.07342036163433921
+elliptic,GIN,Qwen 3.5 35B A3B,Fidelity embedding,0.08958009267555875
+elliptic,GIN,Qwen 3.5 4B,Fidelity embedding,0.0686526528499963
+elliptic,GIN,Qwen 3.5 9B,Fidelity embedding,0.06302552647154286
+elliptic,GraphSAGE,Qwen 2.5 3B,Fidelity embedding,0.050603339998367455
+elliptic,GraphSAGE,Qwen 3.5 27B,Fidelity embedding,0.07645111420942638
+elliptic,GraphSAGE,Qwen 3.5 35B A3B,Fidelity embedding,0.06981323462426331
+elliptic,GraphSAGE,Qwen 3.5 4B,Fidelity embedding,0.0699076373251334
+elliptic,GraphSAGE,Qwen 3.5 9B,Fidelity embedding,0.054730697861631726
+ibm_aml_hi_small,GAT,Qwen 2.5 3B,Fidelity embedding,0.0
+ibm_aml_hi_small,GAT,Qwen 3.5 27B,Fidelity embedding,0.0
+ibm_aml_hi_small,GAT,Qwen 3.5 35B A3B,Fidelity embedding,0.0
+ibm_aml_hi_small,GAT,Qwen 3.5 4B,Fidelity embedding,0.0
+ibm_aml_hi_small,GAT,Qwen 3.5 9B,Fidelity embedding,0.0
+ibm_aml_hi_small,GCN,Qwen 2.5 3B,Fidelity embedding,0.0
+ibm_aml_hi_small,GCN,Qwen 3.5 27B,Fidelity embedding,0.0
+ibm_aml_hi_small,GCN,Qwen 3.5 35B A3B,Fidelity embedding,0.0
+ibm_aml_hi_small,GCN,Qwen 3.5 4B,Fidelity embedding,0.0
+ibm_aml_hi_small,GCN,Qwen 3.5 9B,Fidelity embedding,0.0
+ibm_aml_hi_small,GIN,Qwen 2.5 3B,Fidelity embedding,0.0
+ibm_aml_hi_small,GIN,Qwen 3.5 27B,Fidelity embedding,0.0
+ibm_aml_hi_small,GIN,Qwen 3.5 35B A3B,Fidelity embedding,0.0
+ibm_aml_hi_small,GIN,Qwen 3.5 4B,Fidelity embedding,0.0
+ibm_aml_hi_small,GIN,Qwen 3.5 9B,Fidelity embedding,0.0
+ibm_aml_hi_small,GraphSAGE,Qwen 2.5 3B,Fidelity embedding,0.0
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 27B,Fidelity embedding,0.0
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 35B A3B,Fidelity embedding,0.0
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 4B,Fidelity embedding,0.0
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 9B,Fidelity embedding,0.0
+dgraphfin,GAT,Qwen 2.5 3B,Fidelity explainer,0.0
+dgraphfin,GAT,Qwen 3.5 27B,Fidelity explainer,0.0
+dgraphfin,GAT,Qwen 3.5 35B A3B,Fidelity explainer,0.0
+dgraphfin,GAT,Qwen 3.5 4B,Fidelity explainer,0.0
+dgraphfin,GAT,Qwen 3.5 9B,Fidelity explainer,0.0
+dgraphfin,GCN,Qwen 2.5 3B,Fidelity explainer,0.0
+dgraphfin,GCN,Qwen 3.5 27B,Fidelity explainer,0.0
+dgraphfin,GCN,Qwen 3.5 35B A3B,Fidelity explainer,0.0
+dgraphfin,GCN,Qwen 3.5 4B,Fidelity explainer,0.0
+dgraphfin,GCN,Qwen 3.5 9B,Fidelity explainer,0.0
+dgraphfin,GIN,Qwen 2.5 3B,Fidelity explainer,0.0
+dgraphfin,GIN,Qwen 3.5 27B,Fidelity explainer,0.0
+dgraphfin,GIN,Qwen 3.5 35B A3B,Fidelity explainer,0.0
+dgraphfin,GIN,Qwen 3.5 4B,Fidelity explainer,0.0
+dgraphfin,GIN,Qwen 3.5 9B,Fidelity explainer,0.0
+dgraphfin,GraphSAGE,Qwen 2.5 3B,Fidelity explainer,0.0
+dgraphfin,GraphSAGE,Qwen 3.5 27B,Fidelity explainer,0.0
+dgraphfin,GraphSAGE,Qwen 3.5 35B A3B,Fidelity explainer,0.0
+dgraphfin,GraphSAGE,Qwen 3.5 4B,Fidelity explainer,0.0
+dgraphfin,GraphSAGE,Qwen 3.5 9B,Fidelity explainer,0.0
+elliptic,GAT,Qwen 2.5 3B,Fidelity explainer,0.066597972014396
+elliptic,GAT,Qwen 3.5 27B,Fidelity explainer,0.07459864729527652
+elliptic,GAT,Qwen 3.5 35B A3B,Fidelity explainer,0.0790003569468437
+elliptic,GAT,Qwen 3.5 4B,Fidelity explainer,0.06968534986810258
+elliptic,GAT,Qwen 3.5 9B,Fidelity explainer,0.06931549318756629
+elliptic,GCN,Qwen 2.5 3B,Fidelity explainer,0.04279903015561847
+elliptic,GCN,Qwen 3.5 27B,Fidelity explainer,0.05983183483183483
+elliptic,GCN,Qwen 3.5 35B A3B,Fidelity explainer,0.06401562636760716
+elliptic,GCN,Qwen 3.5 4B,Fidelity explainer,0.047720136449950365
+elliptic,GCN,Qwen 3.5 9B,Fidelity explainer,0.04740955837870539
+elliptic,GIN,Qwen 2.5 3B,Fidelity explainer,0.04675716440422323
+elliptic,GIN,Qwen 3.5 27B,Fidelity explainer,0.07367364392536017
+elliptic,GIN,Qwen 3.5 35B A3B,Fidelity explainer,0.07888934062395886
+elliptic,GIN,Qwen 3.5 4B,Fidelity explainer,0.06291457306712837
+elliptic,GIN,Qwen 3.5 9B,Fidelity explainer,0.06284441845417454
+elliptic,GraphSAGE,Qwen 2.5 3B,Fidelity explainer,0.05048911955290771
+elliptic,GraphSAGE,Qwen 3.5 27B,Fidelity explainer,0.07502961317168967
+elliptic,GraphSAGE,Qwen 3.5 35B A3B,Fidelity explainer,0.07415603178226553
+elliptic,GraphSAGE,Qwen 3.5 4B,Fidelity explainer,0.05941503945038487
+elliptic,GraphSAGE,Qwen 3.5 9B,Fidelity explainer,0.05365607152416409
+ibm_aml_hi_small,GAT,Qwen 2.5 3B,Fidelity explainer,0.0
+ibm_aml_hi_small,GAT,Qwen 3.5 27B,Fidelity explainer,0.0
+ibm_aml_hi_small,GAT,Qwen 3.5 35B A3B,Fidelity explainer,0.0
+ibm_aml_hi_small,GAT,Qwen 3.5 4B,Fidelity explainer,0.0
+ibm_aml_hi_small,GAT,Qwen 3.5 9B,Fidelity explainer,0.0
+ibm_aml_hi_small,GCN,Qwen 2.5 3B,Fidelity explainer,0.0
+ibm_aml_hi_small,GCN,Qwen 3.5 27B,Fidelity explainer,0.0
+ibm_aml_hi_small,GCN,Qwen 3.5 35B A3B,Fidelity explainer,0.0
+ibm_aml_hi_small,GCN,Qwen 3.5 4B,Fidelity explainer,0.0
+ibm_aml_hi_small,GCN,Qwen 3.5 9B,Fidelity explainer,0.0
+ibm_aml_hi_small,GIN,Qwen 2.5 3B,Fidelity explainer,0.0
+ibm_aml_hi_small,GIN,Qwen 3.5 27B,Fidelity explainer,0.0
+ibm_aml_hi_small,GIN,Qwen 3.5 35B A3B,Fidelity explainer,0.0
+ibm_aml_hi_small,GIN,Qwen 3.5 4B,Fidelity explainer,0.0
+ibm_aml_hi_small,GIN,Qwen 3.5 9B,Fidelity explainer,0.0
+ibm_aml_hi_small,GraphSAGE,Qwen 2.5 3B,Fidelity explainer,0.0
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 27B,Fidelity explainer,0.0
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 35B A3B,Fidelity explainer,0.0
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 4B,Fidelity explainer,0.0
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 9B,Fidelity explainer,0.0
+dgraphfin,GAT,Qwen 2.5 3B,Fidelity raw graph,0.0
+dgraphfin,GAT,Qwen 3.5 27B,Fidelity raw graph,0.0
+dgraphfin,GAT,Qwen 3.5 35B A3B,Fidelity raw graph,0.0
+dgraphfin,GAT,Qwen 3.5 4B,Fidelity raw graph,0.0
+dgraphfin,GAT,Qwen 3.5 9B,Fidelity raw graph,0.0
+dgraphfin,GCN,Qwen 2.5 3B,Fidelity raw graph,0.0
+dgraphfin,GCN,Qwen 3.5 27B,Fidelity raw graph,0.0
+dgraphfin,GCN,Qwen 3.5 35B A3B,Fidelity raw graph,0.0
+dgraphfin,GCN,Qwen 3.5 4B,Fidelity raw graph,0.0
+dgraphfin,GCN,Qwen 3.5 9B,Fidelity raw graph,0.0
+dgraphfin,GIN,Qwen 2.5 3B,Fidelity raw graph,0.0
+dgraphfin,GIN,Qwen 3.5 27B,Fidelity raw graph,0.0
+dgraphfin,GIN,Qwen 3.5 35B A3B,Fidelity raw graph,0.0
+dgraphfin,GIN,Qwen 3.5 4B,Fidelity raw graph,0.0
+dgraphfin,GIN,Qwen 3.5 9B,Fidelity raw graph,0.0
+dgraphfin,GraphSAGE,Qwen 2.5 3B,Fidelity raw graph,0.0
+dgraphfin,GraphSAGE,Qwen 3.5 27B,Fidelity raw graph,0.0
+dgraphfin,GraphSAGE,Qwen 3.5 35B A3B,Fidelity raw graph,0.0
+dgraphfin,GraphSAGE,Qwen 3.5 4B,Fidelity raw graph,0.0
+dgraphfin,GraphSAGE,Qwen 3.5 9B,Fidelity raw graph,0.0
+elliptic,GAT,Qwen 2.5 3B,Fidelity raw graph,0.07063807716758477
+elliptic,GAT,Qwen 3.5 27B,Fidelity raw graph,0.05010322571298181
+elliptic,GAT,Qwen 3.5 35B A3B,Fidelity raw graph,0.0
+elliptic,GAT,Qwen 3.5 4B,Fidelity raw graph,0.08172619541840694
+elliptic,GAT,Qwen 3.5 9B,Fidelity raw graph,0.02647342995169082
+elliptic,GCN,Qwen 2.5 3B,Fidelity raw graph,0.046132583966305284
+elliptic,GCN,Qwen 3.5 27B,Fidelity raw graph,0.07082797082797083
+elliptic,GCN,Qwen 3.5 35B A3B,Fidelity raw graph,0.07333333333333333
+elliptic,GCN,Qwen 3.5 4B,Fidelity raw graph,0.04602785625918474
+elliptic,GCN,Qwen 3.5 9B,Fidelity raw graph,0.041130959153487315
+elliptic,GIN,Qwen 2.5 3B,Fidelity raw graph,0.04623235930886501
+elliptic,GIN,Qwen 3.5 27B,Fidelity raw graph,0.07311899249979745
+elliptic,GIN,Qwen 3.5 35B A3B,Fidelity raw graph,0.03076923076923077
+elliptic,GIN,Qwen 3.5 4B,Fidelity raw graph,0.05072467946044979
+elliptic,GIN,Qwen 3.5 9B,Fidelity raw graph,0.02457516339869281
+elliptic,GraphSAGE,Qwen 2.5 3B,Fidelity raw graph,0.050868967290019926
+elliptic,GraphSAGE,Qwen 3.5 27B,Fidelity raw graph,0.03954933954933955
+elliptic,GraphSAGE,Qwen 3.5 35B A3B,Fidelity raw graph,0.0
+elliptic,GraphSAGE,Qwen 3.5 4B,Fidelity raw graph,0.055777982143281335
+elliptic,GraphSAGE,Qwen 3.5 9B,Fidelity raw graph,0.03349923838907161
+ibm_aml_hi_small,GAT,Qwen 2.5 3B,Fidelity raw graph,0.0
+ibm_aml_hi_small,GAT,Qwen 3.5 27B,Fidelity raw graph,0.0
+ibm_aml_hi_small,GAT,Qwen 3.5 35B A3B,Fidelity raw graph,0.0
+ibm_aml_hi_small,GAT,Qwen 3.5 4B,Fidelity raw graph,0.0
+ibm_aml_hi_small,GAT,Qwen 3.5 9B,Fidelity raw graph,0.0
+ibm_aml_hi_small,GCN,Qwen 2.5 3B,Fidelity raw graph,0.0
+ibm_aml_hi_small,GCN,Qwen 3.5 27B,Fidelity raw graph,0.0
+ibm_aml_hi_small,GCN,Qwen 3.5 35B A3B,Fidelity raw graph,0.0
+ibm_aml_hi_small,GCN,Qwen 3.5 4B,Fidelity raw graph,0.0
+ibm_aml_hi_small,GCN,Qwen 3.5 9B,Fidelity raw graph,0.0
+ibm_aml_hi_small,GIN,Qwen 2.5 3B,Fidelity raw graph,0.0
+ibm_aml_hi_small,GIN,Qwen 3.5 27B,Fidelity raw graph,0.0
+ibm_aml_hi_small,GIN,Qwen 3.5 35B A3B,Fidelity raw graph,0.0
+ibm_aml_hi_small,GIN,Qwen 3.5 4B,Fidelity raw graph,0.0
+ibm_aml_hi_small,GIN,Qwen 3.5 9B,Fidelity raw graph,0.0
+ibm_aml_hi_small,GraphSAGE,Qwen 2.5 3B,Fidelity raw graph,0.0
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 27B,Fidelity raw graph,0.0
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 35B A3B,Fidelity raw graph,0.0
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 4B,Fidelity raw graph,0.0
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 9B,Fidelity raw graph,0.0
+dgraphfin,GAT,Qwen 2.5 3B,Recon,0.340630416409244
+dgraphfin,GAT,Qwen 3.5 27B,Recon,0.2820828171828172
+dgraphfin,GAT,Qwen 3.5 35B A3B,Recon,0.2993743034743035
+dgraphfin,GAT,Qwen 3.5 4B,Recon,0.15197979797979796
+dgraphfin,GAT,Qwen 3.5 9B,Recon,0.1277083694083694
+dgraphfin,GCN,Qwen 2.5 3B,Recon,0.3360874939780311
+dgraphfin,GCN,Qwen 3.5 27B,Recon,0.32960562770562774
+dgraphfin,GCN,Qwen 3.5 35B A3B,Recon,0.33056111111111114
+dgraphfin,GCN,Qwen 3.5 4B,Recon,0.14168852813852814
+dgraphfin,GCN,Qwen 3.5 9B,Recon,0.1392036075036075
+dgraphfin,GIN,Qwen 2.5 3B,Recon,0.3437003066782607
+dgraphfin,GIN,Qwen 3.5 27B,Recon,0.27306709956709957
+dgraphfin,GIN,Qwen 3.5 35B A3B,Recon,0.29260548340548337
+dgraphfin,GIN,Qwen 3.5 4B,Recon,0.14224170274170272
+dgraphfin,GIN,Qwen 3.5 9B,Recon,0.11627503607503607
+dgraphfin,GraphSAGE,Qwen 2.5 3B,Recon,0.3344437389379589
+dgraphfin,GraphSAGE,Qwen 3.5 27B,Recon,0.19601486291486292
+dgraphfin,GraphSAGE,Qwen 3.5 35B A3B,Recon,0.2506020683020683
+dgraphfin,GraphSAGE,Qwen 3.5 4B,Recon,0.12597578304048893
+dgraphfin,GraphSAGE,Qwen 3.5 9B,Recon,0.0869940836940837
+elliptic,GAT,Qwen 2.5 3B,Recon,0.35306570944196086
+elliptic,GAT,Qwen 3.5 27B,Recon,0.47652493924613964
+elliptic,GAT,Qwen 3.5 35B A3B,Recon,0.48883973211955994
+elliptic,GAT,Qwen 3.5 4B,Recon,0.24778847398623408
+elliptic,GAT,Qwen 3.5 9B,Recon,0.24832598512598514
+elliptic,GCN,Qwen 2.5 3B,Recon,0.33487987719590157
+elliptic,GCN,Qwen 3.5 27B,Recon,0.5370310832606805
+elliptic,GCN,Qwen 3.5 35B A3B,Recon,0.4961864201839894
+elliptic,GCN,Qwen 3.5 4B,Recon,0.1832008658008658
+elliptic,GCN,Qwen 3.5 9B,Recon,0.16976356976356977
+elliptic,GIN,Qwen 2.5 3B,Recon,0.341067899305546
+elliptic,GIN,Qwen 3.5 27B,Recon,0.35068835314374686
+elliptic,GIN,Qwen 3.5 35B A3B,Recon,0.36955894756724594
+elliptic,GIN,Qwen 3.5 4B,Recon,0.17434140483172741
+elliptic,GIN,Qwen 3.5 9B,Recon,0.15482958997991256
+elliptic,GraphSAGE,Qwen 2.5 3B,Recon,0.3461333250437767
+elliptic,GraphSAGE,Qwen 3.5 27B,Recon,0.3687591901116434
+elliptic,GraphSAGE,Qwen 3.5 35B A3B,Recon,0.37402194570991665
+elliptic,GraphSAGE,Qwen 3.5 4B,Recon,0.15419025974025974
+elliptic,GraphSAGE,Qwen 3.5 9B,Recon,0.11367012987012987
+ibm_aml_hi_small,GAT,Qwen 2.5 3B,Recon,0.27656650646582
+ibm_aml_hi_small,GAT,Qwen 3.5 27B,Recon,0.7318730158730159
+ibm_aml_hi_small,GAT,Qwen 3.5 35B A3B,Recon,0.657143271221532
+ibm_aml_hi_small,GAT,Qwen 3.5 4B,Recon,0.36816031746031747
+ibm_aml_hi_small,GAT,Qwen 3.5 9B,Recon,0.3825777777777778
+ibm_aml_hi_small,GCN,Qwen 2.5 3B,Recon,0.28749400641684936
+ibm_aml_hi_small,GCN,Qwen 3.5 27B,Recon,0.663747619047619
+ibm_aml_hi_small,GCN,Qwen 3.5 35B A3B,Recon,0.573291885238944
+ibm_aml_hi_small,GCN,Qwen 3.5 4B,Recon,0.1957142857142857
+ibm_aml_hi_small,GCN,Qwen 3.5 9B,Recon,0.17519047619047617
+ibm_aml_hi_small,GIN,Qwen 2.5 3B,Recon,0.30059270414155326
+ibm_aml_hi_small,GIN,Qwen 3.5 27B,Recon,0.6121015873015873
+ibm_aml_hi_small,GIN,Qwen 3.5 35B A3B,Recon,0.5188611721611722
+ibm_aml_hi_small,GIN,Qwen 3.5 4B,Recon,0.24243333333333333
+ibm_aml_hi_small,GIN,Qwen 3.5 9B,Recon,0.19224873949579832
+ibm_aml_hi_small,GraphSAGE,Qwen 2.5 3B,Recon,0.31497457922568306
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 27B,Recon,0.6155269841269841
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 35B A3B,Recon,0.5286512265512265
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 4B,Recon,0.2174047619047619
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 9B,Recon,0.1631939393939394
+dgraphfin,GAT,Qwen 2.5 3B,Recon explainer,0.32833618992923347
+dgraphfin,GAT,Qwen 3.5 27B,Recon explainer,0.32154009324009325
+dgraphfin,GAT,Qwen 3.5 35B A3B,Recon explainer,0.32532853146853147
+dgraphfin,GAT,Qwen 3.5 4B,Recon explainer,0.2387965256965257
+dgraphfin,GAT,Qwen 3.5 9B,Recon explainer,0.2335354157824746
+dgraphfin,GCN,Qwen 2.5 3B,Recon explainer,0.3335921203708672
+dgraphfin,GCN,Qwen 3.5 27B,Recon explainer,0.3483235098235098
+dgraphfin,GCN,Qwen 3.5 35B A3B,Recon explainer,0.3503734487734488
+dgraphfin,GCN,Qwen 3.5 4B,Recon explainer,0.26465707190413074
+dgraphfin,GCN,Qwen 3.5 9B,Recon explainer,0.26740950498776583
+dgraphfin,GIN,Qwen 2.5 3B,Recon explainer,0.33546427480542573
+dgraphfin,GIN,Qwen 3.5 27B,Recon explainer,0.29447479187479186
+dgraphfin,GIN,Qwen 3.5 35B A3B,Recon explainer,0.32146245976245974
+dgraphfin,GIN,Qwen 3.5 4B,Recon explainer,0.23289343957170044
+dgraphfin,GIN,Qwen 3.5 9B,Recon explainer,0.20948658008658008
+dgraphfin,GraphSAGE,Qwen 2.5 3B,Recon explainer,0.3406789498339115
+dgraphfin,GraphSAGE,Qwen 3.5 27B,Recon explainer,0.2504336385836386
+dgraphfin,GraphSAGE,Qwen 3.5 35B A3B,Recon explainer,0.26720661005661006
+dgraphfin,GraphSAGE,Qwen 3.5 4B,Recon explainer,0.21607222777222776
+dgraphfin,GraphSAGE,Qwen 3.5 9B,Recon explainer,0.1810774780774781
+elliptic,GAT,Qwen 2.5 3B,Recon explainer,0.3402937885531743
+elliptic,GAT,Qwen 3.5 27B,Recon explainer,0.4883815872941575
+elliptic,GAT,Qwen 3.5 35B A3B,Recon explainer,0.5176417415806328
+elliptic,GAT,Qwen 3.5 4B,Recon explainer,0.3092384126155814
+elliptic,GAT,Qwen 3.5 9B,Recon explainer,0.3650277174771804
+elliptic,GCN,Qwen 2.5 3B,Recon explainer,0.3378232795376812
+elliptic,GCN,Qwen 3.5 27B,Recon explainer,0.5130194964441357
+elliptic,GCN,Qwen 3.5 35B A3B,Recon explainer,0.5351146230826314
+elliptic,GCN,Qwen 3.5 4B,Recon explainer,0.24214502164502166
+elliptic,GCN,Qwen 3.5 9B,Recon explainer,0.32630006331639727
+elliptic,GIN,Qwen 2.5 3B,Recon explainer,0.33614882666260876
+elliptic,GIN,Qwen 3.5 27B,Recon explainer,0.34659958024925464
+elliptic,GIN,Qwen 3.5 35B A3B,Recon explainer,0.3868127742193991
+elliptic,GIN,Qwen 3.5 4B,Recon explainer,0.19440313725490196
+elliptic,GIN,Qwen 3.5 9B,Recon explainer,0.23825128920721125
+elliptic,GraphSAGE,Qwen 2.5 3B,Recon explainer,0.3421660809588855
+elliptic,GraphSAGE,Qwen 3.5 27B,Recon explainer,0.3486609037734249
+elliptic,GraphSAGE,Qwen 3.5 35B A3B,Recon explainer,0.41342938652778194
+elliptic,GraphSAGE,Qwen 3.5 4B,Recon explainer,0.19265692640692642
+elliptic,GraphSAGE,Qwen 3.5 9B,Recon explainer,0.23119045131114097
+ibm_aml_hi_small,GAT,Qwen 2.5 3B,Recon explainer,0.32688624589391857
+ibm_aml_hi_small,GAT,Qwen 3.5 27B,Recon explainer,0.7306031746031746
+ibm_aml_hi_small,GAT,Qwen 3.5 35B A3B,Recon explainer,0.6555170807453417
+ibm_aml_hi_small,GAT,Qwen 3.5 4B,Recon explainer,0.4643428571428571
+ibm_aml_hi_small,GAT,Qwen 3.5 9B,Recon explainer,0.4852292589763178
+ibm_aml_hi_small,GCN,Qwen 2.5 3B,Recon explainer,0.3224047619047619
+ibm_aml_hi_small,GCN,Qwen 3.5 27B,Recon explainer,0.6718725490196079
+ibm_aml_hi_small,GCN,Qwen 3.5 35B A3B,Recon explainer,0.5721815295815296
+ibm_aml_hi_small,GCN,Qwen 3.5 4B,Recon explainer,0.3095428571428571
+ibm_aml_hi_small,GCN,Qwen 3.5 9B,Recon explainer,0.2843857142857143
+ibm_aml_hi_small,GIN,Qwen 2.5 3B,Recon explainer,0.32048174843059757
+ibm_aml_hi_small,GIN,Qwen 3.5 27B,Recon explainer,0.6218383838383839
+ibm_aml_hi_small,GIN,Qwen 3.5 35B A3B,Recon explainer,0.5290953866395043
+ibm_aml_hi_small,GIN,Qwen 3.5 4B,Recon explainer,0.36538311688311687
+ibm_aml_hi_small,GIN,Qwen 3.5 9B,Recon explainer,0.28345930735930736
+ibm_aml_hi_small,GraphSAGE,Qwen 2.5 3B,Recon explainer,0.32500522624277506
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 27B,Recon explainer,0.6339813852813853
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 35B A3B,Recon explainer,0.5391015533486122
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 4B,Recon explainer,0.30676190476190474
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 9B,Recon explainer,0.29413953823953826
+dgraphfin,GAT,Qwen 2.5 3B,Recon no GNN,0.3168619046974075
+dgraphfin,GAT,Qwen 3.5 27B,Recon no GNN,0.20238932178932179
+dgraphfin,GAT,Qwen 3.5 35B A3B,Recon no GNN,0.20096464646464646
+dgraphfin,GAT,Qwen 3.5 4B,Recon no GNN,0.07283852813852813
+dgraphfin,GAT,Qwen 3.5 9B,Recon no GNN,0.07767186147186148
+dgraphfin,GCN,Qwen 2.5 3B,Recon no GNN,0.32277771166679503
+dgraphfin,GCN,Qwen 3.5 27B,Recon no GNN,0.20274011544011544
+dgraphfin,GCN,Qwen 3.5 35B A3B,Recon no GNN,0.19766421356421357
+dgraphfin,GCN,Qwen 3.5 4B,Recon no GNN,0.07350519480519481
+dgraphfin,GCN,Qwen 3.5 9B,Recon no GNN,0.08113852813852813
+dgraphfin,GIN,Qwen 2.5 3B,Recon no GNN,0.3164334902795813
+dgraphfin,GIN,Qwen 3.5 27B,Recon no GNN,0.20084516594516594
+dgraphfin,GIN,Qwen 3.5 35B A3B,Recon no GNN,0.204702886002886
+dgraphfin,GIN,Qwen 3.5 4B,Recon no GNN,0.07483852813852813
+dgraphfin,GIN,Qwen 3.5 9B,Recon no GNN,0.08207186147186148
+dgraphfin,GraphSAGE,Qwen 2.5 3B,Recon no GNN,0.33028428700298673
+dgraphfin,GraphSAGE,Qwen 3.5 27B,Recon no GNN,0.2025832611832612
+dgraphfin,GraphSAGE,Qwen 3.5 35B A3B,Recon no GNN,0.19993145743145743
+dgraphfin,GraphSAGE,Qwen 3.5 4B,Recon no GNN,0.08017186147186148
+dgraphfin,GraphSAGE,Qwen 3.5 9B,Recon no GNN,0.0830051948051948
+elliptic,GAT,Qwen 2.5 3B,Recon no GNN,0.45422072137478026
+elliptic,GAT,Qwen 3.5 27B,Recon no GNN,0.4769240596009815
+elliptic,GAT,Qwen 3.5 35B A3B,Recon no GNN,0.463438273992944
+elliptic,GAT,Qwen 3.5 4B,Recon no GNN,0.25251089466089466
+elliptic,GAT,Qwen 3.5 9B,Recon no GNN,0.2326374956124956
+elliptic,GCN,Qwen 2.5 3B,Recon no GNN,0.44841912383253757
+elliptic,GCN,Qwen 3.5 27B,Recon no GNN,0.47406456571795824
+elliptic,GCN,Qwen 3.5 35B A3B,Recon no GNN,0.45870206007569664
+elliptic,GCN,Qwen 3.5 4B,Recon no GNN,0.2527275613275613
+elliptic,GCN,Qwen 3.5 9B,Recon no GNN,0.23860315217815217
+elliptic,GIN,Qwen 2.5 3B,Recon no GNN,0.45882818078865334
+elliptic,GIN,Qwen 3.5 27B,Recon no GNN,0.4670754606177398
+elliptic,GIN,Qwen 3.5 35B A3B,Recon no GNN,0.45207627676221895
+elliptic,GIN,Qwen 3.5 4B,Recon no GNN,0.2523053391053391
+elliptic,GIN,Qwen 3.5 9B,Recon no GNN,0.23728800066300065
+elliptic,GraphSAGE,Qwen 2.5 3B,Recon no GNN,0.45200262554028914
+elliptic,GraphSAGE,Qwen 3.5 27B,Recon no GNN,0.4772194705254097
+elliptic,GraphSAGE,Qwen 3.5 35B A3B,Recon no GNN,0.4629131216246597
+elliptic,GraphSAGE,Qwen 3.5 4B,Recon no GNN,0.25637756132756134
+elliptic,GraphSAGE,Qwen 3.5 9B,Recon no GNN,0.24297637085137086
+ibm_aml_hi_small,GAT,Qwen 2.5 3B,Recon no GNN,0.5469747135217723
+ibm_aml_hi_small,GAT,Qwen 3.5 27B,Recon no GNN,0.6830212121212121
+ibm_aml_hi_small,GAT,Qwen 3.5 35B A3B,Recon no GNN,0.6225238095238095
+ibm_aml_hi_small,GAT,Qwen 3.5 4B,Recon no GNN,0.5038571428571429
+ibm_aml_hi_small,GAT,Qwen 3.5 9B,Recon no GNN,0.49717142857142854
+ibm_aml_hi_small,GCN,Qwen 2.5 3B,Recon no GNN,0.5432276868059477
+ibm_aml_hi_small,GCN,Qwen 3.5 27B,Recon no GNN,0.681730735930736
+ibm_aml_hi_small,GCN,Qwen 3.5 35B A3B,Recon no GNN,0.6255904761904761
+ibm_aml_hi_small,GCN,Qwen 3.5 4B,Recon no GNN,0.5175238095238095
+ibm_aml_hi_small,GCN,Qwen 3.5 9B,Recon no GNN,0.4916380952380952
+ibm_aml_hi_small,GIN,Qwen 2.5 3B,Recon no GNN,0.5482061181784967
+ibm_aml_hi_small,GIN,Qwen 3.5 27B,Recon no GNN,0.6833212121212121
+ibm_aml_hi_small,GIN,Qwen 3.5 35B A3B,Recon no GNN,0.6242666666666666
+ibm_aml_hi_small,GIN,Qwen 3.5 4B,Recon no GNN,0.5069238095238096
+ibm_aml_hi_small,GIN,Qwen 3.5 9B,Recon no GNN,0.4960380952380952
+ibm_aml_hi_small,GraphSAGE,Qwen 2.5 3B,Recon no GNN,0.5545847278041651
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 27B,Recon no GNN,0.6812688311688312
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 35B A3B,Recon no GNN,0.6253428571428571
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 4B,Recon no GNN,0.5192571428571429
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 9B,Recon no GNN,0.48883809523809524

@@ -1,0 +1,13 @@
+dataset,reference,method,GNN,LLM,F1,precision,recall,jaccard
+elliptic,explainer,Neighbourhood reconstruction,GCN,Qwen/Qwen3.5-27B,0.3818821098749891,0.38897716993151776,0.4202666666666667,0.34761950725744845
+elliptic,explainer,Random baseline,GIN,,0.08632506403706265,0.07230445292252428,0.1299,0.06847415511575589
+elliptic,explainer,Cosine baseline,GAT,,0.0,0.0,0.0,0.0
+elliptic,explainer,Feature baseline,GAT,,0.49089213731466225,0.42522746879554013,0.646,0.42522746879554013
+ibm_aml_hi_small,explainer,Neighbourhood reconstruction,GAT,Qwen/Qwen3.5-27B,0.7318730158730159,0.8874333333333333,0.6701666666666667,0.6459666666666667
+ibm_aml_hi_small,explainer,Random baseline,GAT,,0.11549999999999999,0.11549999999999999,0.11549999999999999,0.07377142857142857
+ibm_aml_hi_small,explainer,Cosine baseline,GAT,,0.0,0.0,0.0,0.0
+ibm_aml_hi_small,explainer,Feature baseline,GAT,,0.978,0.978,0.978,0.978
+dgraphfin,explainer,Neighbourhood reconstruction,GCN,Qwen/Qwen3.5-35B-A3B,0.20809632034632033,0.23023116883116884,0.2206,0.17873116883116882
+dgraphfin,explainer,Random baseline,GAT,,0.06654372294372295,0.056523809523809525,0.09266666666666666,0.0477047619047619
+dgraphfin,explainer,Cosine baseline,GAT,,0.0,0.0,0.0,0.0
+dgraphfin,explainer,Feature baseline,GAT,,0.4965969696969697,0.4359904761904762,0.642,0.4359904761904762

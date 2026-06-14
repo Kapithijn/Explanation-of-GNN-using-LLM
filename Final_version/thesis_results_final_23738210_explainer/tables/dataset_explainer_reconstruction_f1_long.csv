@@ -1,0 +1,181 @@
+dataset,GNN,LLM,experiment,F1
+dgraphfin,GAT,Qwen 2.5 3B,GNNExplainer recon,0.16182318929929645
+dgraphfin,GAT,Qwen 3.5 27B,GNNExplainer recon,0.18114603174603175
+dgraphfin,GAT,Qwen 3.5 35B A3B,GNNExplainer recon,0.18973650793650795
+dgraphfin,GAT,Qwen 3.5 4B,GNNExplainer recon,0.10607395382395382
+dgraphfin,GAT,Qwen 3.5 9B,GNNExplainer recon,0.07931666666666667
+dgraphfin,GCN,Qwen 2.5 3B,GNNExplainer recon,0.15997670327683117
+dgraphfin,GCN,Qwen 3.5 27B,GNNExplainer recon,0.1976
+dgraphfin,GCN,Qwen 3.5 35B A3B,GNNExplainer recon,0.20809632034632033
+dgraphfin,GCN,Qwen 3.5 4B,GNNExplainer recon,0.10361666666666666
+dgraphfin,GCN,Qwen 3.5 9B,GNNExplainer recon,0.10165
+dgraphfin,GIN,Qwen 2.5 3B,GNNExplainer recon,0.167454708845394
+dgraphfin,GIN,Qwen 3.5 27B,GNNExplainer recon,0.19042857142857142
+dgraphfin,GIN,Qwen 3.5 35B A3B,GNNExplainer recon,0.19390071873281592
+dgraphfin,GIN,Qwen 3.5 4B,GNNExplainer recon,0.09938095238095238
+dgraphfin,GIN,Qwen 3.5 9B,GNNExplainer recon,0.09267619047619047
+dgraphfin,GraphSAGE,Qwen 2.5 3B,GNNExplainer recon,0.15153290833842725
+dgraphfin,GraphSAGE,Qwen 3.5 27B,GNNExplainer recon,0.12867142857142858
+dgraphfin,GraphSAGE,Qwen 3.5 35B A3B,GNNExplainer recon,0.14719576510446075
+dgraphfin,GraphSAGE,Qwen 3.5 4B,GNNExplainer recon,0.07025714285714285
+dgraphfin,GraphSAGE,Qwen 3.5 9B,GNNExplainer recon,0.05112380952380952
+elliptic,GAT,Qwen 2.5 3B,GNNExplainer recon,0.1561548921540694
+elliptic,GAT,Qwen 3.5 27B,GNNExplainer recon,0.2977590187590188
+elliptic,GAT,Qwen 3.5 35B A3B,GNNExplainer recon,0.29980485951956537
+elliptic,GAT,Qwen 3.5 4B,GNNExplainer recon,0.1563126984126984
+elliptic,GAT,Qwen 3.5 9B,GNNExplainer recon,0.17412727272727271
+elliptic,GCN,Qwen 2.5 3B,GNNExplainer recon,0.14401064570713754
+elliptic,GCN,Qwen 3.5 27B,GNNExplainer recon,0.3818821098749891
+elliptic,GCN,Qwen 3.5 35B A3B,GNNExplainer recon,0.33619583682446585
+elliptic,GCN,Qwen 3.5 4B,GNNExplainer recon,0.1184112554112554
+elliptic,GCN,Qwen 3.5 9B,GNNExplainer recon,0.10509869383490074
+elliptic,GIN,Qwen 2.5 3B,GNNExplainer recon,0.14612596827885396
+elliptic,GIN,Qwen 3.5 27B,GNNExplainer recon,0.24603608989050166
+elliptic,GIN,Qwen 3.5 35B A3B,GNNExplainer recon,0.25875849924928873
+elliptic,GIN,Qwen 3.5 4B,GNNExplainer recon,0.12293333333333334
+elliptic,GIN,Qwen 3.5 9B,GNNExplainer recon,0.10280676708912002
+elliptic,GraphSAGE,Qwen 2.5 3B,GNNExplainer recon,0.15117867621314757
+elliptic,GraphSAGE,Qwen 3.5 27B,GNNExplainer recon,0.19811816573519359
+elliptic,GraphSAGE,Qwen 3.5 35B A3B,GNNExplainer recon,0.20221199163519918
+elliptic,GraphSAGE,Qwen 3.5 4B,GNNExplainer recon,0.0918095238095238
+elliptic,GraphSAGE,Qwen 3.5 9B,GNNExplainer recon,0.06366031746031746
+ibm_aml_hi_small,GAT,Qwen 2.5 3B,GNNExplainer recon,0.27656650646582
+ibm_aml_hi_small,GAT,Qwen 3.5 27B,GNNExplainer recon,0.7318730158730159
+ibm_aml_hi_small,GAT,Qwen 3.5 35B A3B,GNNExplainer recon,0.657143271221532
+ibm_aml_hi_small,GAT,Qwen 3.5 4B,GNNExplainer recon,0.36816031746031747
+ibm_aml_hi_small,GAT,Qwen 3.5 9B,GNNExplainer recon,0.3825777777777778
+ibm_aml_hi_small,GCN,Qwen 2.5 3B,GNNExplainer recon,0.28749400641684936
+ibm_aml_hi_small,GCN,Qwen 3.5 27B,GNNExplainer recon,0.663747619047619
+ibm_aml_hi_small,GCN,Qwen 3.5 35B A3B,GNNExplainer recon,0.573291885238944
+ibm_aml_hi_small,GCN,Qwen 3.5 4B,GNNExplainer recon,0.1957142857142857
+ibm_aml_hi_small,GCN,Qwen 3.5 9B,GNNExplainer recon,0.17519047619047617
+ibm_aml_hi_small,GIN,Qwen 2.5 3B,GNNExplainer recon,0.30059270414155326
+ibm_aml_hi_small,GIN,Qwen 3.5 27B,GNNExplainer recon,0.6121015873015873
+ibm_aml_hi_small,GIN,Qwen 3.5 35B A3B,GNNExplainer recon,0.5188611721611722
+ibm_aml_hi_small,GIN,Qwen 3.5 4B,GNNExplainer recon,0.24243333333333333
+ibm_aml_hi_small,GIN,Qwen 3.5 9B,GNNExplainer recon,0.19224873949579832
+ibm_aml_hi_small,GraphSAGE,Qwen 2.5 3B,GNNExplainer recon,0.31497457922568306
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 27B,GNNExplainer recon,0.6155269841269841
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 35B A3B,GNNExplainer recon,0.5286512265512265
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 4B,GNNExplainer recon,0.2174047619047619
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 9B,GNNExplainer recon,0.1631939393939394
+dgraphfin,GAT,Qwen 2.5 3B,GNNExplainer recon with explainer,0.15347116282335693
+dgraphfin,GAT,Qwen 3.5 27B,GNNExplainer recon with explainer,0.195215873015873
+dgraphfin,GAT,Qwen 3.5 35B A3B,GNNExplainer recon with explainer,0.20423422109291672
+dgraphfin,GAT,Qwen 3.5 4B,GNNExplainer recon with explainer,0.13072097518849438
+dgraphfin,GAT,Qwen 3.5 9B,GNNExplainer recon with explainer,0.1264072659366777
+dgraphfin,GCN,Qwen 2.5 3B,GNNExplainer recon with explainer,0.1576903718744276
+dgraphfin,GCN,Qwen 3.5 27B,GNNExplainer recon with explainer,0.19773203463203465
+dgraphfin,GCN,Qwen 3.5 35B A3B,GNNExplainer recon with explainer,0.21336428571428573
+dgraphfin,GCN,Qwen 3.5 4B,GNNExplainer recon with explainer,0.15827810531327155
+dgraphfin,GCN,Qwen 3.5 9B,GNNExplainer recon with explainer,0.15575343847684
+dgraphfin,GIN,Qwen 2.5 3B,GNNExplainer recon with explainer,0.16089917827196062
+dgraphfin,GIN,Qwen 3.5 27B,GNNExplainer recon with explainer,0.19420649350649352
+dgraphfin,GIN,Qwen 3.5 35B A3B,GNNExplainer recon with explainer,0.21045586154396895
+dgraphfin,GIN,Qwen 3.5 4B,GNNExplainer recon with explainer,0.1368271001944915
+dgraphfin,GIN,Qwen 3.5 9B,GNNExplainer recon with explainer,0.1320313385960445
+dgraphfin,GraphSAGE,Qwen 2.5 3B,GNNExplainer recon with explainer,0.15527229249788815
+dgraphfin,GraphSAGE,Qwen 3.5 27B,GNNExplainer recon with explainer,0.14385665445665446
+dgraphfin,GraphSAGE,Qwen 3.5 35B A3B,GNNExplainer recon with explainer,0.14601936903676033
+dgraphfin,GraphSAGE,Qwen 3.5 4B,GNNExplainer recon with explainer,0.11365791684870968
+dgraphfin,GraphSAGE,Qwen 3.5 9B,GNNExplainer recon with explainer,0.09582028853499441
+elliptic,GAT,Qwen 2.5 3B,GNNExplainer recon with explainer,0.14890022712600284
+elliptic,GAT,Qwen 3.5 27B,GNNExplainer recon with explainer,0.3096307359307359
+elliptic,GAT,Qwen 3.5 35B A3B,GNNExplainer recon with explainer,0.32635143049245213
+elliptic,GAT,Qwen 3.5 4B,GNNExplainer recon with explainer,0.19185275443510738
+elliptic,GAT,Qwen 3.5 9B,GNNExplainer recon with explainer,0.22142673837955168
+elliptic,GCN,Qwen 2.5 3B,GNNExplainer recon with explainer,0.1500180524379458
+elliptic,GCN,Qwen 3.5 27B,GNNExplainer recon with explainer,0.35030393249681174
+elliptic,GCN,Qwen 3.5 35B A3B,GNNExplainer recon with explainer,0.3360021312021312
+elliptic,GCN,Qwen 3.5 4B,GNNExplainer recon with explainer,0.1331176046176046
+elliptic,GCN,Qwen 3.5 9B,GNNExplainer recon with explainer,0.19298419358419358
+elliptic,GIN,Qwen 2.5 3B,GNNExplainer recon with explainer,0.14576682980437022
+elliptic,GIN,Qwen 3.5 27B,GNNExplainer recon with explainer,0.24790545157456922
+elliptic,GIN,Qwen 3.5 35B A3B,GNNExplainer recon with explainer,0.26117421351363673
+elliptic,GIN,Qwen 3.5 4B,GNNExplainer recon with explainer,0.13243838383838383
+elliptic,GIN,Qwen 3.5 9B,GNNExplainer recon with explainer,0.14979337264043147
+elliptic,GraphSAGE,Qwen 2.5 3B,GNNExplainer recon with explainer,0.14884038117485254
+elliptic,GraphSAGE,Qwen 3.5 27B,GNNExplainer recon with explainer,0.20085595719994695
+elliptic,GraphSAGE,Qwen 3.5 35B A3B,GNNExplainer recon with explainer,0.2270091765296369
+elliptic,GraphSAGE,Qwen 3.5 4B,GNNExplainer recon with explainer,0.09765405840497118
+elliptic,GraphSAGE,Qwen 3.5 9B,GNNExplainer recon with explainer,0.13267666179709522
+ibm_aml_hi_small,GAT,Qwen 2.5 3B,GNNExplainer recon with explainer,0.32688624589391857
+ibm_aml_hi_small,GAT,Qwen 3.5 27B,GNNExplainer recon with explainer,0.7306031746031746
+ibm_aml_hi_small,GAT,Qwen 3.5 35B A3B,GNNExplainer recon with explainer,0.6555170807453417
+ibm_aml_hi_small,GAT,Qwen 3.5 4B,GNNExplainer recon with explainer,0.4643428571428571
+ibm_aml_hi_small,GAT,Qwen 3.5 9B,GNNExplainer recon with explainer,0.4852292589763178
+ibm_aml_hi_small,GCN,Qwen 2.5 3B,GNNExplainer recon with explainer,0.3224047619047619
+ibm_aml_hi_small,GCN,Qwen 3.5 27B,GNNExplainer recon with explainer,0.6718725490196079
+ibm_aml_hi_small,GCN,Qwen 3.5 35B A3B,GNNExplainer recon with explainer,0.5721815295815296
+ibm_aml_hi_small,GCN,Qwen 3.5 4B,GNNExplainer recon with explainer,0.3095428571428571
+ibm_aml_hi_small,GCN,Qwen 3.5 9B,GNNExplainer recon with explainer,0.2843857142857143
+ibm_aml_hi_small,GIN,Qwen 2.5 3B,GNNExplainer recon with explainer,0.32048174843059757
+ibm_aml_hi_small,GIN,Qwen 3.5 27B,GNNExplainer recon with explainer,0.6218383838383839
+ibm_aml_hi_small,GIN,Qwen 3.5 35B A3B,GNNExplainer recon with explainer,0.5290953866395043
+ibm_aml_hi_small,GIN,Qwen 3.5 4B,GNNExplainer recon with explainer,0.36538311688311687
+ibm_aml_hi_small,GIN,Qwen 3.5 9B,GNNExplainer recon with explainer,0.28345930735930736
+ibm_aml_hi_small,GraphSAGE,Qwen 2.5 3B,GNNExplainer recon with explainer,0.32500522624277506
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 27B,GNNExplainer recon with explainer,0.6339813852813853
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 35B A3B,GNNExplainer recon with explainer,0.5391015533486122
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 4B,GNNExplainer recon with explainer,0.30676190476190474
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 9B,GNNExplainer recon with explainer,0.29413953823953826
+dgraphfin,GAT,Qwen 2.5 3B,GNNExplainer recon no GNN,0.1464487153070677
+dgraphfin,GAT,Qwen 3.5 27B,GNNExplainer recon no GNN,0.13254285714285713
+dgraphfin,GAT,Qwen 3.5 35B A3B,GNNExplainer recon no GNN,0.1228394880481837
+dgraphfin,GAT,Qwen 3.5 4B,GNNExplainer recon no GNN,0.0384
+dgraphfin,GAT,Qwen 3.5 9B,GNNExplainer recon no GNN,0.038533333333333336
+dgraphfin,GCN,Qwen 2.5 3B,GNNExplainer recon no GNN,0.1493860388530869
+dgraphfin,GCN,Qwen 3.5 27B,GNNExplainer recon no GNN,0.13213333333333332
+dgraphfin,GCN,Qwen 3.5 35B A3B,GNNExplainer recon no GNN,0.12348571428571428
+dgraphfin,GCN,Qwen 3.5 4B,GNNExplainer recon no GNN,0.039733333333333336
+dgraphfin,GCN,Qwen 3.5 9B,GNNExplainer recon no GNN,0.0412
+dgraphfin,GIN,Qwen 2.5 3B,GNNExplainer recon no GNN,0.14501367897369377
+dgraphfin,GIN,Qwen 3.5 27B,GNNExplainer recon no GNN,0.1317047619047619
+dgraphfin,GIN,Qwen 3.5 35B A3B,GNNExplainer recon no GNN,0.12767965367965367
+dgraphfin,GIN,Qwen 3.5 4B,GNNExplainer recon no GNN,0.04106666666666666
+dgraphfin,GIN,Qwen 3.5 9B,GNNExplainer recon no GNN,0.04086666666666666
+dgraphfin,GraphSAGE,Qwen 2.5 3B,GNNExplainer recon no GNN,0.14930702692933814
+dgraphfin,GraphSAGE,Qwen 3.5 27B,GNNExplainer recon no GNN,0.13223809523809524
+dgraphfin,GraphSAGE,Qwen 3.5 35B A3B,GNNExplainer recon no GNN,0.12422996423865988
+dgraphfin,GraphSAGE,Qwen 3.5 4B,GNNExplainer recon no GNN,0.04373333333333333
+dgraphfin,GraphSAGE,Qwen 3.5 9B,GNNExplainer recon no GNN,0.04086666666666666
+elliptic,GAT,Qwen 2.5 3B,GNNExplainer recon no GNN,0.23163833641110648
+elliptic,GAT,Qwen 3.5 27B,GNNExplainer recon no GNN,0.2614095238095238
+elliptic,GAT,Qwen 3.5 35B A3B,GNNExplainer recon no GNN,0.2588162473794549
+elliptic,GAT,Qwen 3.5 4B,GNNExplainer recon no GNN,0.15000952380952381
+elliptic,GAT,Qwen 3.5 9B,GNNExplainer recon no GNN,0.16724285714285714
+elliptic,GCN,Qwen 2.5 3B,GNNExplainer recon no GNN,0.23244531794619544
+elliptic,GCN,Qwen 3.5 27B,GNNExplainer recon no GNN,0.2639830862109812
+elliptic,GCN,Qwen 3.5 35B A3B,GNNExplainer recon no GNN,0.26089603174603176
+elliptic,GCN,Qwen 3.5 4B,GNNExplainer recon no GNN,0.15614285714285714
+elliptic,GCN,Qwen 3.5 9B,GNNExplainer recon no GNN,0.1742190476190476
+elliptic,GIN,Qwen 2.5 3B,GNNExplainer recon no GNN,0.23746634846441267
+elliptic,GIN,Qwen 3.5 27B,GNNExplainer recon no GNN,0.26003228635236747
+elliptic,GIN,Qwen 3.5 35B A3B,GNNExplainer recon no GNN,0.25791844070961717
+elliptic,GIN,Qwen 3.5 4B,GNNExplainer recon no GNN,0.15634285714285714
+elliptic,GIN,Qwen 3.5 9B,GNNExplainer recon no GNN,0.17324285714285714
+elliptic,GraphSAGE,Qwen 2.5 3B,GNNExplainer recon no GNN,0.23378491930350478
+elliptic,GraphSAGE,Qwen 3.5 27B,GNNExplainer recon no GNN,0.2651207392157984
+elliptic,GraphSAGE,Qwen 3.5 35B A3B,GNNExplainer recon no GNN,0.26675713064713064
+elliptic,GraphSAGE,Qwen 3.5 4B,GNNExplainer recon no GNN,0.15580952380952381
+elliptic,GraphSAGE,Qwen 3.5 9B,GNNExplainer recon no GNN,0.1729190476190476
+ibm_aml_hi_small,GAT,Qwen 2.5 3B,GNNExplainer recon no GNN,0.5469747135217723
+ibm_aml_hi_small,GAT,Qwen 3.5 27B,GNNExplainer recon no GNN,0.6830212121212121
+ibm_aml_hi_small,GAT,Qwen 3.5 35B A3B,GNNExplainer recon no GNN,0.6225238095238095
+ibm_aml_hi_small,GAT,Qwen 3.5 4B,GNNExplainer recon no GNN,0.5038571428571429
+ibm_aml_hi_small,GAT,Qwen 3.5 9B,GNNExplainer recon no GNN,0.49717142857142854
+ibm_aml_hi_small,GCN,Qwen 2.5 3B,GNNExplainer recon no GNN,0.5432276868059477
+ibm_aml_hi_small,GCN,Qwen 3.5 27B,GNNExplainer recon no GNN,0.681730735930736
+ibm_aml_hi_small,GCN,Qwen 3.5 35B A3B,GNNExplainer recon no GNN,0.6255904761904761
+ibm_aml_hi_small,GCN,Qwen 3.5 4B,GNNExplainer recon no GNN,0.5175238095238095
+ibm_aml_hi_small,GCN,Qwen 3.5 9B,GNNExplainer recon no GNN,0.4916380952380952
+ibm_aml_hi_small,GIN,Qwen 2.5 3B,GNNExplainer recon no GNN,0.5482061181784967
+ibm_aml_hi_small,GIN,Qwen 3.5 27B,GNNExplainer recon no GNN,0.6833212121212121
+ibm_aml_hi_small,GIN,Qwen 3.5 35B A3B,GNNExplainer recon no GNN,0.6242666666666666
+ibm_aml_hi_small,GIN,Qwen 3.5 4B,GNNExplainer recon no GNN,0.5069238095238096
+ibm_aml_hi_small,GIN,Qwen 3.5 9B,GNNExplainer recon no GNN,0.4960380952380952
+ibm_aml_hi_small,GraphSAGE,Qwen 2.5 3B,GNNExplainer recon no GNN,0.5545847278041651
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 27B,GNNExplainer recon no GNN,0.6812688311688312
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 35B A3B,GNNExplainer recon no GNN,0.6253428571428571
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 4B,GNNExplainer recon no GNN,0.5192571428571429
+ibm_aml_hi_small,GraphSAGE,Qwen 3.5 9B,GNNExplainer recon no GNN,0.48883809523809524
