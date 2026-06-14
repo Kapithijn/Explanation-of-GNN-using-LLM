@@ -1,0 +1,10 @@
+Dataset,Experiment,F1,Precision,Recall,Jaccard,Avg. true,Avg. predicted,Empty rate
+Elliptic,Reconstruction,0.314,0.34,0.429,0.26,3.108,2.795,0.314
+Elliptic,Reconstruction with explainer,0.35,0.363,0.5,0.288,3.108,3.34,0.215
+Elliptic,Reconstruction without GNN,0.376,0.473,0.416,0.315,3.108,1.787,0.369
+AML,Reconstruction,0.401,0.458,0.487,0.331,2.378,3.022,0.3
+AML,Reconstruction with explainer,0.452,0.492,0.581,0.372,2.378,3.777,0.198
+AML,Reconstruction without GNN,0.572,0.778,0.534,0.468,2.378,1.907,0.127
+DGraph,Reconstruction,0.232,0.266,0.338,0.172,2.574,3.005,0.278
+DGraph,Reconstruction with explainer,0.283,0.306,0.428,0.206,2.574,3.726,0.127
+DGraph,Reconstruction without GNN,0.176,0.197,0.263,0.128,2.574,2.429,0.404

@@ -71,7 +71,7 @@ EXPERIMENT_LABELS = {
     "embedding_classification": "Embedding fidelity",
     "embedding_classification_explainer_subgraph": "Embedding with explainer fidelity",
     "raw_graph_reasoning": "Raw graph fidelity",
-    "reconstruction_1hop": "Neighbourhood reconstruction",
+    "reconstruction_1hop": "1-hop neighbourhood reconstruction",
     "reconstruction_1hop_embed_expl": "Reconstruction with explainer",
     "reconstruction_1hop_no_gnn": "Reconstruction without GNN",
     "baseline_random": "Random baseline",
@@ -686,28 +686,29 @@ def plot_precision_recall(mean_rows: list[dict[str, Any]], out_path: Path, datas
         and row.get("reference") == "ground_truth"
         and row.get("family") == "reconstruction"
     ]
-    fig, axes = plt.subplots(1, len(datasets), figsize=(5.0 * len(datasets), 4.3), constrained_layout=True)
+    llms = ordered_unique([row.get("llm") for row in rows], LLM_ORDER)
+    models = ordered_unique([row.get("model") for row in rows], GNN_ORDER)
+    if not llms or not models:
+        return
+
+    fig, axes = plt.subplots(2, len(datasets), figsize=(5.2 * len(datasets), 8.2), constrained_layout=True)
     if len(datasets) == 1:
-        axes = [axes]
-    fig.suptitle("Reconstruction precision and recall")
-    markers = {"GCN": "o", "GAT": "s", "GIN": "^", "GraphSAGE": "D"}
-    for ax, dataset in zip(axes, datasets):
+        axes = np.array([[axes[0]], [axes[1]]])
+    fig.suptitle("Reconstruction precision and recall by dataset, GNN, and LLM")
+    for col, dataset in enumerate(datasets):
         panel_rows = [row for row in rows if row.get("dataset") == dataset]
-        for row in panel_rows:
-            ax.scatter(
-                safe_float(row.get("recall")),
-                safe_float(row.get("precision")),
-                s=44,
-                marker=markers.get(str(row.get("model")), "o"),
-                alpha=0.8,
-                color=COLORS["blue"],
+        for row_idx, metric in enumerate(["precision", "recall"]):
+            ax = axes[row_idx, col]
+            values = matrix_from_rows(panel_rows, "llm", "model", metric, llms, models)
+            draw_heatmap(
+                ax,
+                values,
+                [short_llm(llm) for llm in llms],
+                models,
+                f"{dataset_label(dataset)} {metric}",
             )
-        ax.set_title(dataset_label(dataset), loc="left")
-        ax.set_xlim(-0.02, 1.02)
-        ax.set_ylim(-0.02, 1.02)
-        ax.set_xlabel("Recall")
-        ax.set_ylabel("Precision")
-        ax.grid(alpha=0.25)
+            ax.set_xlabel("GNN")
+            ax.set_ylabel("LLM")
     save_figure(fig, out_path)
 
 
@@ -1131,9 +1132,9 @@ def write_readme(out_dir: Path, input_dirs: list[Path]) -> None:
             "- `figures/01b_fidelity_accuracy_heatmap.png`: accuracy heatmaps for fidelity.",
             "- `figures/02_neighbourhood_f1_heatmap.png`: F1 heatmaps for neighbourhood reconstruction.",
             "- `figures/02b_explainer_reconstruction_f1_heatmap.png`: F1 heatmaps for GNNExplainer-subgraph reconstruction.",
-            "- `figures/03_reconstruction_baselines.png`: best reconstruction method compared with baselines.",
+            "- `figures/03_reconstruction_baselines.png`: 1-hop neighbourhood reconstruction compared with baselines.",
             "- `figures/03b_explainer_reconstruction_baselines.png`: best GNNExplainer reconstruction method compared with baselines.",
-            "- `figures/04_reconstruction_precision_recall.png`: precision and recall scatter.",
+            "- `figures/04_reconstruction_precision_recall.png`: precision and recall heatmaps.",
             "- `figures/05_llm_behavior_rates.png`: parse and empty-output behavior.",
             "",
         ]
@@ -1227,7 +1228,13 @@ def main() -> int:
         metric="f1",
         reference="explainer",
     )
-    plot_reconstruction_baselines(mean_rows, figure_dir / "03_reconstruction_baselines.png", args.datasets)
+    plot_reconstruction_baselines(
+        mean_rows,
+        figure_dir / "03_reconstruction_baselines.png",
+        args.datasets,
+        reference="ground_truth",
+        title="1-hop neighbourhood reconstruction F1 compared with baselines",
+    )
     plot_reconstruction_baselines(
         mean_rows,
         figure_dir / "03b_explainer_reconstruction_baselines.png",
