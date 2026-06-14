@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+from torch_geometric.data import Data
 from torch_geometric.explain import Explainer, GNNExplainer
 from torch_geometric.utils import add_self_loops, k_hop_subgraph, remove_self_loops
 import numpy as np
@@ -173,20 +174,9 @@ def get_explainer_edges(edge_index, edge_mask, top_k=5, min_score=None):
     return edges
 
 
-def get_explanation(model, data, target_node, explainer_top_k=5, explainer_min_score=None):
-    """
-    Runs GNNExplainer and returns edge/feature importance masks.
-    
-    Args:
-        model: Trained GNN model
-        data: PyG Data object
-        target_node: Index of the target node
-    
-    Returns:
-        Dictionary with 'edge_mask' and 'feature_mask' (numpy arrays)
-    """
-    model.eval()
-    explainer = Explainer(
+def _build_explainer(model):
+    """Create the PyG explainer used by this pipeline."""
+    return Explainer(
         model=model,
         algorithm=GNNExplainer(epochs=50),
         explanation_type="model",
@@ -198,6 +188,261 @@ def get_explanation(model, data, target_node, explainer_top_k=5, explainer_min_s
             return_type="raw",
         ),
     )
+
+
+def _sample_tensor(values, count, seed=None):
+    """Sample tensor values deterministically on CPU, preserving value device."""
+    count = int(count)
+    if count <= 0 or values.numel() == 0:
+        return values[:0]
+    if count >= int(values.numel()):
+        return values
+    generator = torch.Generator(device="cpu")
+    if seed is not None:
+        generator.manual_seed(int(seed))
+    perm = torch.randperm(int(values.numel()), generator=generator)[:count]
+    return values[perm.to(values.device)]
+
+
+def _maybe_cap_local_subgraph(subset, sub_edge_index, mapping, max_nodes=None, max_edges=None, seed=None):
+    """Optionally cap a relabeled local subgraph while keeping the target node."""
+    local_node_count = int(subset.numel())
+    original_edge_count = int(sub_edge_index.size(1))
+    mapping = int(mapping)
+    stats = {
+        "local_num_nodes_before_cap": local_node_count,
+        "local_num_edges_before_cap": original_edge_count,
+        "local_num_edges_before_edge_cap": original_edge_count,
+        "hit_max_nodes": False,
+        "hit_max_edges": False,
+    }
+
+    if max_nodes is not None:
+        max_nodes = max(1, int(max_nodes))
+        if local_node_count > max_nodes:
+            stats["hit_max_nodes"] = True
+            src, dst = sub_edge_index
+            target = torch.tensor([mapping], dtype=torch.long, device=subset.device)
+            one_hop = torch.cat([dst[src == mapping], src[dst == mapping]]).unique()
+            one_hop = one_hop[one_hop != mapping]
+
+            room_for_neighbors = max(0, max_nodes - 1)
+            kept_neighbors = _sample_tensor(one_hop, room_for_neighbors, seed=seed)
+            keep_parts = [target, kept_neighbors]
+
+            current = int(1 + kept_neighbors.numel())
+            if current < max_nodes:
+                keep_mask = torch.zeros(local_node_count, dtype=torch.bool, device=subset.device)
+                keep_mask[target] = True
+                if kept_neighbors.numel() > 0:
+                    keep_mask[kept_neighbors] = True
+                remaining = (~keep_mask).nonzero(as_tuple=False).view(-1)
+                sampled_remaining = _sample_tensor(remaining, max_nodes - current, seed=None if seed is None else int(seed) + 1)
+                keep_parts.append(sampled_remaining)
+
+            keep_local = torch.cat(keep_parts).unique()
+            keep_local = torch.sort(keep_local).values
+            keep_mask = torch.zeros(local_node_count, dtype=torch.bool, device=subset.device)
+            keep_mask[keep_local] = True
+
+            src, dst = sub_edge_index
+            edge_keep = keep_mask[src] & keep_mask[dst]
+            sub_edge_index = sub_edge_index[:, edge_keep]
+
+            old_to_new = torch.full(
+                (local_node_count,),
+                -1,
+                dtype=torch.long,
+                device=subset.device,
+            )
+            old_to_new[keep_local] = torch.arange(int(keep_local.numel()), device=subset.device)
+            sub_edge_index = old_to_new[sub_edge_index]
+            subset = subset[keep_local]
+            mapping = int(old_to_new[mapping].item())
+
+    stats["local_num_edges_before_edge_cap"] = int(sub_edge_index.size(1))
+    if max_edges is not None:
+        max_edges = max(1, int(max_edges))
+        edge_count = int(sub_edge_index.size(1))
+        if edge_count > max_edges:
+            stats["hit_max_edges"] = True
+            src, dst = sub_edge_index
+            target_edges = ((src == mapping) | (dst == mapping)).nonzero(as_tuple=False).view(-1)
+            other_mask = torch.ones(edge_count, dtype=torch.bool, device=sub_edge_index.device)
+            other_mask[target_edges] = False
+            other_edges = other_mask.nonzero(as_tuple=False).view(-1)
+
+            if int(target_edges.numel()) >= max_edges:
+                keep_edges = _sample_tensor(target_edges, max_edges, seed=seed)
+            else:
+                rest = _sample_tensor(
+                    other_edges,
+                    max_edges - int(target_edges.numel()),
+                    seed=None if seed is None else int(seed) + 2,
+                )
+                keep_edges = torch.cat([target_edges, rest])
+            keep_edges = torch.sort(keep_edges).values
+            sub_edge_index = sub_edge_index[:, keep_edges]
+
+    stats["local_num_nodes_after_cap"] = int(subset.numel())
+    stats["local_num_edges_after_cap"] = int(sub_edge_index.size(1))
+    return subset, sub_edge_index, mapping, stats
+
+
+def _local_explanation_data(data, target_node, num_hops=2, max_nodes=None, max_edges=None, seed=None):
+    """Build the local graph used for scalable explanation."""
+    subset, sub_edge_index, mapping, _ = k_hop_subgraph(
+        node_idx=int(target_node),
+        num_hops=int(num_hops),
+        edge_index=data.edge_index,
+        relabel_nodes=True,
+    )
+    subset, sub_edge_index, mapping, cap_stats = _maybe_cap_local_subgraph(
+        subset,
+        sub_edge_index,
+        int(mapping.item()) if hasattr(mapping, "item") else int(mapping),
+        max_nodes=max_nodes,
+        max_edges=max_edges,
+        seed=seed,
+    )
+    local_data = Data(
+        x=data.x[subset],
+        edge_index=sub_edge_index,
+    )
+    if hasattr(data, "y") and data.y is not None:
+        local_data.y = data.y[subset]
+    return local_data, subset, int(mapping), cap_stats
+
+
+def _globalize_explainer_edges(edges, subset):
+    """Map local explainer edge endpoints back to global node ids."""
+    global_edges = []
+    for edge in edges:
+        local_source = int(edge.get("source"))
+        local_target = int(edge.get("target"))
+        item = dict(edge)
+        item["local_source"] = local_source
+        item["local_target"] = local_target
+        item["source"] = int(subset[local_source].detach().cpu().item())
+        item["target"] = int(subset[local_target].detach().cpu().item())
+        global_edges.append(item)
+    return global_edges
+
+
+def get_local_explanation(
+    model,
+    data,
+    target_node,
+    num_hops=2,
+    max_nodes=None,
+    max_edges=None,
+    seed=None,
+    explainer_top_k=5,
+    explainer_min_score=None,
+):
+    """Run GNNExplainer on a local/sampled subgraph and map ids globally."""
+    model.eval()
+    local_data, subset, local_target, cap_stats = _local_explanation_data(
+        data,
+        target_node,
+        num_hops=num_hops,
+        max_nodes=max_nodes,
+        max_edges=max_edges,
+        seed=seed,
+    )
+    explainer = _build_explainer(model)
+    explanation_edge_index = _edge_index_for_explanation(model, local_data)
+    explanation = explainer(local_data.x, explanation_edge_index, index=local_target)
+    edge_mask = explanation.edge_mask
+
+    local_neighbors = get_explainer_neighbors(
+        explanation_edge_index,
+        edge_mask,
+        local_target,
+        top_k=explainer_top_k,
+        min_score=explainer_min_score,
+    )
+    explainer_neighbors = [
+        int(subset[int(node_id)].detach().cpu().item())
+        for node_id in local_neighbors
+        if 0 <= int(node_id) < int(subset.numel())
+    ]
+    explainer_edges = _globalize_explainer_edges(
+        get_explainer_edges(
+            explanation_edge_index,
+            edge_mask,
+            top_k=explainer_top_k,
+            min_score=explainer_min_score,
+        ),
+        subset,
+    )
+
+    return {
+        "node_id": target_node,
+        "edge_mask": edge_mask.detach().cpu().numpy() if edge_mask is not None else None,
+        "feature_mask": explanation.node_mask.detach().cpu().numpy() if explanation.node_mask is not None else None,
+        "explainer_neighbors": explainer_neighbors,
+        "explainer_edges": explainer_edges,
+        "explainer_top_k": explainer_top_k,
+        "explanation_scope": "local",
+        "local_num_hops": int(num_hops),
+        "local_num_nodes": int(subset.numel()),
+        "local_num_edges": int(explanation_edge_index.size(1)),
+        "local_message_edges": int(local_data.edge_index.size(1)),
+        "local_explanation_edges": int(explanation_edge_index.size(1)),
+        "local_num_nodes_before_cap": int(cap_stats.get("local_num_nodes_before_cap", subset.numel())),
+        "local_num_edges_before_cap": int(cap_stats.get("local_num_edges_before_cap", local_data.edge_index.size(1))),
+        "local_num_edges_before_edge_cap": int(cap_stats.get("local_num_edges_before_edge_cap", local_data.edge_index.size(1))),
+        "local_num_nodes_after_cap": int(cap_stats.get("local_num_nodes_after_cap", subset.numel())),
+        "local_num_edges_after_cap": int(cap_stats.get("local_num_edges_after_cap", local_data.edge_index.size(1))),
+        "hit_max_nodes": bool(cap_stats.get("hit_max_nodes", False)),
+        "hit_max_edges": bool(cap_stats.get("hit_max_edges", False)),
+        "local_target_mapping": int(local_target),
+        "local_subset_nodes": subset.detach().cpu().numpy(),
+        "local_max_nodes": None if max_nodes is None else int(max_nodes),
+        "local_max_edges": None if max_edges is None else int(max_edges),
+    }
+
+
+def get_explanation(
+    model,
+    data,
+    target_node,
+    explainer_top_k=5,
+    explainer_min_score=None,
+    explanation_scope="full",
+    explanation_num_hops=2,
+    explanation_max_nodes=None,
+    explanation_max_edges=None,
+    seed=None,
+):
+    """
+    Runs GNNExplainer and returns edge/feature importance masks.
+    
+    Args:
+        model: Trained GNN model
+        data: PyG Data object
+        target_node: Index of the target node
+    
+    Returns:
+        Dictionary with 'edge_mask' and 'feature_mask' (numpy arrays)
+    """
+    scope = str(explanation_scope or "full").strip().lower()
+    if scope in {"local", "sampled", "subgraph"}:
+        return get_local_explanation(
+            model,
+            data,
+            target_node,
+            num_hops=explanation_num_hops,
+            max_nodes=explanation_max_nodes,
+            max_edges=explanation_max_edges,
+            seed=seed,
+            explainer_top_k=explainer_top_k,
+            explainer_min_score=explainer_min_score,
+        )
+
+    model.eval()
+    explainer = _build_explainer(model)
 
     explanation_edge_index = _edge_index_for_explanation(model, data)
     explanation = explainer(data.x, explanation_edge_index, index=target_node)
@@ -223,10 +468,33 @@ def get_explanation(model, data, target_node, explainer_top_k=5, explainer_min_s
         "explainer_neighbors": explainer_neighbors,
         "explainer_edges": explainer_edges,
         "explainer_top_k": explainer_top_k,
+        "explanation_scope": "full",
     }
 
 
-def get_embedding(model, data, target_node):
+def compute_node_embedding_cache(model, data):
+    """Compute first-layer node embeddings once for reuse during extraction."""
+    if not hasattr(data, "x") or data.x is None or not hasattr(data, "edge_index") or data.edge_index is None:
+        return None
+
+    model.eval()
+    try:
+        model_device = next(model.parameters()).device
+    except StopIteration:
+        model_device = data.x.device
+
+    with torch.no_grad():
+        x = data.x.to(model_device)
+        edge_index = data.edge_index.to(model_device)
+        if hasattr(model, 'conv1'):
+            x = model.conv1(x, edge_index)
+            x = F.relu(x)
+        else:
+            x = model(x, edge_index)
+        return x.detach().cpu()
+
+
+def get_embedding(model, data, target_node, embedding_cache=None):
     """
     Extracts the latent embedding of the target node.
     
@@ -238,6 +506,15 @@ def get_embedding(model, data, target_node):
     Returns:
         Dictionary with 'node_id' and 'embedding' (numpy array)
     """
+    if embedding_cache is not None:
+        embedding = embedding_cache[int(target_node)]
+        return {
+            "node_id": target_node,
+            "embedding": embedding.detach().cpu().numpy(),
+            "embedding_dim": len(embedding),
+            "embedding_cached": True,
+        }
+
     model.eval()
     
     # For GNN models with multiple layers, we extract from the second-to-last layer
@@ -264,10 +541,20 @@ def get_embedding(model, data, target_node):
         "node_id": target_node,
         "embedding": embedding.cpu().numpy(),
         "embedding_dim": len(embedding),
+        "embedding_cached": False,
     }
 
 
-def get_subgraph(data, target_node, num_hops=2):
+def get_subgraph(
+    data,
+    target_node,
+    num_hops=2,
+    max_nodes=None,
+    max_edges=None,
+    include_node_features=True,
+    include_node_labels=True,
+    seed=None,
+):
     """
     Extracts the k-hop subgraph around the target node.
     
@@ -286,12 +573,32 @@ def get_subgraph(data, target_node, num_hops=2):
         edge_index=data.edge_index,
         relabel_nodes=True,
     )
+    original_num_nodes = int(subset.numel())
+    original_num_edges = int(sub_edge_index.size(1))
+    cap_stats = {
+        "local_num_nodes_before_cap": original_num_nodes,
+        "local_num_edges_before_cap": original_num_edges,
+        "local_num_edges_before_edge_cap": original_num_edges,
+        "hit_max_nodes": False,
+        "hit_max_edges": False,
+        "local_num_nodes_after_cap": original_num_nodes,
+        "local_num_edges_after_cap": original_num_edges,
+    }
+    if max_nodes is not None or max_edges is not None:
+        subset, sub_edge_index, mapping, cap_stats = _maybe_cap_local_subgraph(
+            subset,
+            sub_edge_index,
+            int(mapping.item()) if hasattr(mapping, "item") else int(mapping),
+            max_nodes=max_nodes,
+            max_edges=max_edges,
+            seed=seed,
+        )
     
     # Extract subgraph node features
-    sub_x = data.x[subset] if hasattr(data, 'x') else None
+    sub_x = data.x[subset] if include_node_features and hasattr(data, 'x') else None
     
     # Extract subgraph labels if available
-    sub_y = data.y[subset] if hasattr(data, 'y') else None
+    sub_y = data.y[subset] if include_node_labels and hasattr(data, 'y') else None
     
     return {
         "node_id": target_node,
@@ -303,6 +610,15 @@ def get_subgraph(data, target_node, num_hops=2):
         "target_mapping": mapping.item() if mapping.numel() == 1 else mapping.cpu().numpy(),
         "num_nodes": len(subset),
         "num_edges": sub_edge_index.shape[1],
+        "num_nodes_before_cap": original_num_nodes,
+        "num_edges_before_cap": original_num_edges,
+        "num_edges_before_edge_cap": int(cap_stats.get("local_num_edges_before_edge_cap", original_num_edges)),
+        "hit_max_nodes": bool(cap_stats.get("hit_max_nodes", False)),
+        "hit_max_edges": bool(cap_stats.get("hit_max_edges", False)),
+        "max_nodes": None if max_nodes is None else int(max_nodes),
+        "max_edges": None if max_edges is None else int(max_edges),
+        "include_node_features": bool(include_node_features),
+        "include_node_labels": bool(include_node_labels),
     }
 
 
@@ -346,11 +662,19 @@ def get_node_feature_table(data, node_ids):
     }
 
 
-def get_node_embedding_table(model, data, node_ids):
+def get_node_embedding_table(model, data, node_ids, embedding_cache=None):
     """Return first-layer GNN embeddings aligned with node ids for prompts."""
     node_ids = [int(v) for v in (node_ids or [])]
     if not node_ids:
         return {"node_ids": [], "embeddings": [], "embedding_dim": 0}
+    if embedding_cache is not None:
+        embeddings = embedding_cache[torch.tensor(node_ids, dtype=torch.long)]
+        return {
+            "node_ids": node_ids,
+            "embeddings": embeddings.detach().cpu().numpy(),
+            "embedding_dim": int(embeddings.shape[1]) if embeddings.ndim > 1 else int(embeddings.numel()),
+            "embedding_cached": True,
+        }
     if not hasattr(data, "x") or data.x is None or not hasattr(data, "edge_index") or data.edge_index is None:
         return {"node_ids": [], "embeddings": [], "embedding_dim": 0}
 
@@ -375,6 +699,7 @@ def get_node_embedding_table(model, data, node_ids):
         "node_ids": node_ids,
         "embeddings": embeddings.detach().cpu().numpy(),
         "embedding_dim": int(embeddings.shape[1]) if embeddings.ndim > 1 else int(embeddings.numel()),
+        "embedding_cached": False,
     }
 
 
@@ -390,23 +715,36 @@ def build_candidate_set(data, target_node, true_neighbors, candidate_ratio=4, ma
     rng = np.random.default_rng(seed)
     true_set = set(int(v) for v in true_neighbors)
     true_set.discard(int(target_node))
-    all_nodes = set(range(num_nodes))
-    negatives = list(all_nodes.difference(true_set).difference({int(target_node)}))
+    excluded = set(true_set)
+    excluded.add(int(target_node))
 
     neg_count = int(len(true_set) * candidate_ratio)
     if max_candidates is not None:
         max_candidates = int(max_candidates)
         neg_count = min(neg_count, max(0, max_candidates - len(true_set)))
+    available_negatives = max(0, num_nodes - len(excluded))
+    neg_count = min(neg_count, available_negatives)
 
-    if neg_count > 0 and negatives:
-        if neg_count >= len(negatives):
-            sampled = negatives
-        else:
-            sampled = rng.choice(negatives, size=neg_count, replace=False).tolist()
-    else:
-        sampled = []
+    sampled_set = set()
+    if neg_count > 0:
+        max_attempts = max(1000, neg_count * 50)
+        attempts = 0
+        while len(sampled_set) < neg_count and attempts < max_attempts:
+            candidate = int(rng.integers(0, num_nodes))
+            attempts += 1
+            if candidate not in excluded and candidate not in sampled_set:
+                sampled_set.add(candidate)
 
-    candidates = sorted(list(true_set) + [int(v) for v in sampled])
+        if len(sampled_set) < neg_count:
+            start = int(rng.integers(0, num_nodes))
+            for offset in range(num_nodes):
+                candidate = (start + offset) % num_nodes
+                if candidate not in excluded and candidate not in sampled_set:
+                    sampled_set.add(candidate)
+                    if len(sampled_set) >= neg_count:
+                        break
+
+    candidates = sorted(list(true_set) + [int(v) for v in sampled_set])
     return {
         "true_neighbors": sorted(list(true_set)),
         "candidates": candidates,
@@ -421,6 +759,17 @@ def extract_all(
     include_candidate_set=True,
     explainer_top_k=5,
     explainer_min_score=None,
+    explanation_scope="full",
+    explanation_num_hops=2,
+    explanation_max_nodes=None,
+    explanation_max_edges=None,
+    include_subgraph=True,
+    subgraph_max_nodes=None,
+    subgraph_max_edges=None,
+    subgraph_include_node_features=True,
+    subgraph_include_node_labels=True,
+    embedding_cache=None,
+    seed=None,
 ):
     """
     Runs all extractions and returns a structured bundle containing:
@@ -445,9 +794,25 @@ def extract_all(
         target_node,
         explainer_top_k=explainer_top_k,
         explainer_min_score=explainer_min_score,
+        explanation_scope=explanation_scope,
+        explanation_num_hops=explanation_num_hops,
+        explanation_max_nodes=explanation_max_nodes,
+        explanation_max_edges=explanation_max_edges,
+        seed=seed,
     )
-    embedding = get_embedding(model, data, target_node)
-    subgraph = get_subgraph(data, target_node, num_hops=num_hops)
+    embedding = get_embedding(model, data, target_node, embedding_cache=embedding_cache)
+    subgraph = None
+    if include_subgraph:
+        subgraph = get_subgraph(
+            data,
+            target_node,
+            num_hops=num_hops,
+            max_nodes=subgraph_max_nodes,
+            max_edges=subgraph_max_edges,
+            include_node_features=subgraph_include_node_features,
+            include_node_labels=subgraph_include_node_labels,
+            seed=seed,
+        )
     raw_features = get_raw_features(data, target_node)
     one_hop_neighbors = get_one_hop_neighbors(data, target_node)
     neighbor_feature_table = get_neighbor_feature_table(data, one_hop_neighbors)

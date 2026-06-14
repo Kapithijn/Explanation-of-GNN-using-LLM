@@ -1,0 +1,125 @@
+#!/bin/bash
+#SBATCH --job-name=thesis100
+#SBATCH --partition=gpu_h100
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --gpus=1
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=180G
+#SBATCH --time=48:00:00
+#SBATCH --array=0-14%3
+#SBATCH --output=thesis100_%A_%a.out
+#SBATCH --error=thesis100_%A_%a.err
+
+set -Eeuo pipefail
+
+cd /scratch-shared/tvanveen/Explanation-of-GNN-using-LLM
+
+source "$HOME/miniconda3/etc/profile.d/conda.sh"
+conda activate ethfraud_clean
+
+export OMP_NUM_THREADS="$SLURM_CPUS_PER_TASK"
+export MKL_NUM_THREADS="$SLURM_CPUS_PER_TASK"
+export TOKENIZERS_PARALLELISM=false
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+export PYTHONUNBUFFERED=1
+export PYTHONFAULTHANDLER=1
+
+export TMPDIR="/scratch-shared/$USER/tmp"
+export XDG_CACHE_HOME="/scratch-shared/$USER/.cache"
+export HF_HOME="/scratch-shared/$USER/huggingface"
+export TRANSFORMERS_CACHE="$HF_HOME/transformers"
+export HF_DATASETS_CACHE="$HF_HOME/datasets"
+export HUGGINGFACE_HUB_CACHE="$HF_HOME/hub"
+mkdir -p "$TMPDIR" "$XDG_CACHE_HOME" "$HF_HOME"
+
+DATASETS=("elliptic" "ibm_aml_hi_small" "dgraphfin")
+SEEDS=(42 43 44 45 46)
+
+GNNS=("GCN" "GAT" "GIN" "GraphSAGE")
+LLMS=(
+  "Qwen/Qwen2.5-3B"
+  "Qwen/Qwen3.5-4B"
+  "Qwen/Qwen3.5-9B"
+  "Qwen/Qwen3.5-27B"
+  "Qwen/Qwen3.5-35B-A3B"
+)
+
+EXPERIMENTS=(
+  "embedding_classification"
+  "embedding_classification_explainer_subgraph"
+  "raw_graph_reasoning"
+  "reconstruction_1hop"
+  "reconstruction_1hop_embed_expl"
+  "reconstruction_1hop_no_gnn"
+  "baseline_random"
+  "baseline_cosine"
+  "baseline_feature"
+)
+
+N_DATASETS=${#DATASETS[@]}
+
+run_i=$((SLURM_ARRAY_TASK_ID / N_DATASETS))
+dataset_i=$((SLURM_ARRAY_TASK_ID % N_DATASETS))
+
+DATASET="${DATASETS[$dataset_i]}"
+SEED="${SEEDS[$run_i]}"
+
+BASE_OUT="outputs/final_thesis_100nodes_5runs_all_datasets_1gpu"
+RUN_DIR="$BASE_OUT/$DATASET/seed_$SEED"
+
+mkdir -p "$RUN_DIR"
+
+echo "============================================================"
+echo "Job ID: ${SLURM_JOB_ID}"
+echo "Array task: ${SLURM_ARRAY_TASK_ID}"
+echo "Dataset: ${DATASET}"
+echo "Seed: ${SEED}"
+echo "Output: ${RUN_DIR}"
+echo "Start: $(date)"
+echo "Node: ${SLURMD_NODENAME:-unknown}"
+echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-unset}"
+echo "============================================================"
+nvidia-smi || true
+
+if [ -s "$RUN_DIR/run.done" ]; then
+  echo "SKIP: run.done exists at $RUN_DIR/run.done"
+  exit 0
+fi
+
+{
+  echo "job_id=${SLURM_JOB_ID}"
+  echo "array_task=${SLURM_ARRAY_TASK_ID}"
+  echo "dataset=${DATASET}"
+  echo "seed=${SEED}"
+  echo "start=$(date --iso-8601=seconds)"
+  echo "node=${SLURMD_NODENAME:-unknown}"
+  echo "cuda_visible_devices=${CUDA_VISIBLE_DEVICES:-unset}"
+} > "$RUN_DIR/job_meta.txt"
+
+/usr/bin/time -v python -X faulthandler -u Final_version/main.py \
+  --config Final_version/configs/final_thesis_100nodes.json \
+  --datasets "$DATASET" \
+  --models "${GNNS[@]}" \
+  --llms "${LLMS[@]}" \
+  --experiments "${EXPERIMENTS[@]}" \
+  --num-target-nodes 100 \
+  --target-node-pool test \
+  --target-node-sampling random \
+  --device cuda \
+  --seed "$SEED" \
+  --num-runs 1 \
+  --explainer-scope local \
+  --explainer-local-num-hops 2 \
+  --explainer-max-nodes 5000 \
+  --explainer-max-edges 20000 \
+  --extract-workers 1 \
+  --continue-on-llm-error \
+  --output-dir "$RUN_DIR" \
+  > "$RUN_DIR/run.log" 2> "$RUN_DIR/time_and_stderr.log"
+
+echo "end=$(date --iso-8601=seconds)" >> "$RUN_DIR/job_meta.txt"
+date > "$RUN_DIR/run.done"
+
+echo "DONE dataset=${DATASET} seed=${SEED}"
+echo "End: $(date)"

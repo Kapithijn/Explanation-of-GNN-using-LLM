@@ -385,6 +385,9 @@ def load_ibm_aml_hi_small(
 	``Is Laundering`` value is used as the node label.
 	"""
 	root = Path(root)
+	if max_rows is not None:
+		print(f"Ignoring IBM AML max_rows={max_rows}; loading full HI-Small rows.")
+		max_rows = None
 	if processed_name is None:
 		row_suffix = "full" if max_rows is None else f"rows_{int(max_rows)}"
 		edge_suffix = "all" if max_edges_per_account is None else f"acct_edges_{int(max_edges_per_account)}"

@@ -73,6 +73,15 @@ def extract_one(
 	seed=None,
 	explainer_top_k=5,
 	explainer_min_score=None,
+	explanation_scope="full",
+	explanation_num_hops=2,
+	explanation_max_nodes=None,
+	explanation_max_edges=None,
+	include_subgraph=True,
+	subgraph_max_nodes=None,
+	subgraph_max_edges=None,
+	subgraph_include_node_features=True,
+	subgraph_include_node_labels=True,
 ):
 	"""Run extraction for a single (dataset, model, node) tuple.
 
@@ -103,6 +112,16 @@ def extract_one(
 		include_candidate_set=False,
 		explainer_top_k=explainer_top_k,
 		explainer_min_score=explainer_min_score,
+		explanation_scope=explanation_scope,
+		explanation_num_hops=explanation_num_hops,
+		explanation_max_nodes=explanation_max_nodes,
+		explanation_max_edges=explanation_max_edges,
+		include_subgraph=include_subgraph,
+		subgraph_max_nodes=subgraph_max_nodes,
+		subgraph_max_edges=subgraph_max_edges,
+		subgraph_include_node_features=subgraph_include_node_features,
+		subgraph_include_node_labels=subgraph_include_node_labels,
+		seed=(int(seed) + int(node_id)) if seed is not None else None,
 	)
 	return {
 		"dataset": dataset_name,

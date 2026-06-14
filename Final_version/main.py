@@ -92,6 +92,52 @@ def parse_args(argv=None):
 	)
 	parser.add_argument("--num-hops", type=int, default=None, help="Override k for k-hop subgraph extraction.")
 	parser.add_argument(
+		"--explainer-scope",
+		choices=["full", "local"],
+		default=None,
+		help="Run GNNExplainer on the full graph or on a local sampled subgraph.",
+	)
+	parser.add_argument(
+		"--explainer-local-num-hops",
+		type=int,
+		default=None,
+		help="Number of hops for local GNNExplainer subgraphs.",
+	)
+	parser.add_argument(
+		"--explainer-max-nodes",
+		type=int,
+		default=None,
+		help="Optional cap for nodes passed to local GNNExplainer.",
+	)
+	parser.add_argument(
+		"--explainer-max-edges",
+		type=int,
+		default=None,
+		help="Optional cap for edges passed to local GNNExplainer.",
+	)
+	parser.add_argument(
+		"--subgraph-max-nodes",
+		type=int,
+		default=None,
+		help="Optional cap for stored k-hop subgraph nodes. Omit to keep the full k-hop topology.",
+	)
+	parser.add_argument(
+		"--subgraph-max-edges",
+		type=int,
+		default=None,
+		help="Optional cap for stored k-hop subgraph edges. Omit to keep the full k-hop topology.",
+	)
+	parser.add_argument(
+		"--include-subgraph-features",
+		action="store_true",
+		help="Store node feature matrices inside k-hop subgraph bundles.",
+	)
+	parser.add_argument(
+		"--include-subgraph-labels",
+		action="store_true",
+		help="Store node labels inside k-hop subgraph bundles.",
+	)
+	parser.add_argument(
 		"--max-new-tokens",
 		type=int,
 		default=None,
@@ -299,7 +345,20 @@ def default_config():
 				"top_k": 5,
 				"fallback_top_k": 1,
 			},
-		"prompt": {
+			"explanation": {
+				"scope": "full",
+				"local_num_hops": None,
+				"max_nodes": None,
+				"max_edges": None,
+			},
+			"subgraph": {
+				"include": True,
+				"max_nodes": None,
+				"max_edges": None,
+				"include_node_features": True,
+				"include_node_labels": True,
+			},
+			"prompt": {
 			"template": (
 "You are helping compliance analysts understand and validate the prediction of a graph neural network (GNN) used for financial transaction fraud detection on a transaction graph.\n\n"
 "You will see examples of GNN decisions with their correct class, then a new case to classify.\n"
@@ -415,6 +474,30 @@ def apply_cli_overrides(config, args):
 		config["target_node_sampling"] = str(args.target_node_sampling)
 	if args.num_hops is not None:
 		config["num_hops"] = int(args.num_hops)
+	if getattr(args, "explainer_scope", None) is not None:
+		explanation = config.get("explanation")
+		if not isinstance(explanation, dict):
+			explanation = {}
+		explanation["scope"] = str(args.explainer_scope)
+		config["explanation"] = explanation
+	if getattr(args, "explainer_local_num_hops", None) is not None:
+		explanation = config.get("explanation")
+		if not isinstance(explanation, dict):
+			explanation = {}
+		explanation["local_num_hops"] = max(1, int(args.explainer_local_num_hops))
+		config["explanation"] = explanation
+	if getattr(args, "explainer_max_nodes", None) is not None:
+		explanation = config.get("explanation")
+		if not isinstance(explanation, dict):
+			explanation = {}
+		explanation["max_nodes"] = max(1, int(args.explainer_max_nodes))
+		config["explanation"] = explanation
+	if getattr(args, "explainer_max_edges", None) is not None:
+		explanation = config.get("explanation")
+		if not isinstance(explanation, dict):
+			explanation = {}
+		explanation["max_edges"] = max(1, int(args.explainer_max_edges))
+		config["explanation"] = explanation
 	if getattr(args, "max_new_tokens", None) is not None:
 		generation = config.get("generation")
 		if not isinstance(generation, dict):
@@ -597,18 +680,17 @@ def _select_target_nodes(config, data):
 
 	if count >= int(candidates.numel()):
 		selected = candidates
+	elif sampling == "first":
+		selected = candidates[:count]
 	else:
-		if sampling == "first":
-			selected = candidates[:count]
+		seed = config.get("seed")
+		if seed is None:
+			perm = torch.randperm(int(candidates.numel()))
 		else:
-			seed = config.get("seed")
-			if seed is None:
-				perm = torch.randperm(int(candidates.numel()))
-			else:
-				generator = torch.Generator(device="cpu")
-				generator.manual_seed(int(seed))
-				perm = torch.randperm(int(candidates.numel()), generator=generator)
-			selected = candidates[perm[:count]]
+			generator = torch.Generator(device="cpu")
+			generator.manual_seed(int(seed))
+			perm = torch.randperm(int(candidates.numel()), generator=generator)
+		selected = candidates[perm[:count]]
 
 	return [int(v.item()) for v in selected]
 
@@ -741,6 +823,96 @@ def run_training_stage(config, model_bundle, datasets):
 	return {"histories": histories}
 
 
+def _print_local_explainer_cap_summary(records):
+	"""Print whether local GNNExplainer node/edge caps were active."""
+	summaries = {}
+	for record in records:
+		bundle = record.get("bundle") or {}
+		explanation = bundle.get("explanation") or {}
+		if explanation.get("explanation_scope") != "local":
+			continue
+		dataset_name = record.get("dataset") or bundle.get("dataset") or "unknown_dataset"
+		model_name = record.get("model") or bundle.get("model") or "unknown_model"
+		key = (str(dataset_name), str(model_name))
+		item = summaries.setdefault(
+			key,
+			{
+				"count": 0,
+				"node_hits": 0,
+				"edge_hits": 0,
+				"max_nodes_cap": explanation.get("local_max_nodes"),
+				"max_edges_cap": explanation.get("local_max_edges"),
+				"max_nodes_before": 0,
+				"max_edges_before": 0,
+				"max_edges_before_edge_cap": 0,
+				"max_nodes_after": 0,
+				"max_edges_after": 0,
+			},
+		)
+		item["count"] += 1
+		item["node_hits"] += int(bool(explanation.get("hit_max_nodes", False)))
+		item["edge_hits"] += int(bool(explanation.get("hit_max_edges", False)))
+		item["max_nodes_before"] = max(
+			item["max_nodes_before"],
+			int(explanation.get("local_num_nodes_before_cap", 0) or 0),
+		)
+		item["max_edges_before"] = max(
+			item["max_edges_before"],
+			int(explanation.get("local_num_edges_before_cap", 0) or 0),
+		)
+		item["max_edges_before_edge_cap"] = max(
+			item["max_edges_before_edge_cap"],
+			int(explanation.get("local_num_edges_before_edge_cap", 0) or 0),
+		)
+		item["max_nodes_after"] = max(
+			item["max_nodes_after"],
+			int(explanation.get("local_num_nodes_after_cap", explanation.get("local_num_nodes", 0)) or 0),
+		)
+		item["max_edges_after"] = max(
+			item["max_edges_after"],
+			int(explanation.get("local_num_edges_after_cap", explanation.get("local_message_edges", 0)) or 0),
+		)
+
+	if not summaries:
+		return
+
+	print("Local GNNExplainer cap summary:")
+	for (dataset_name, model_name), item in sorted(summaries.items()):
+		count = max(1, int(item["count"]))
+		print(
+			f"- {dataset_name}|{model_name}: "
+			f"node_cap_hits={item['node_hits']}/{count}, "
+			f"edge_cap_hits={item['edge_hits']}/{count}, "
+			f"max_before_nodes={item['max_nodes_before']}, "
+			f"max_before_edges={item['max_edges_before']}, "
+			f"max_before_edge_cap_edges={item['max_edges_before_edge_cap']}, "
+			f"max_after_nodes={item['max_nodes_after']}, "
+			f"max_after_edges={item['max_edges_after']}, "
+			f"caps=(nodes={item['max_nodes_cap']}, edges={item['max_edges_cap']})"
+		)
+
+
+def _local_explainer_cap_fields(bundle):
+	"""Return local GNNExplainer cap diagnostics for saved raw result rows."""
+	explanation = (bundle or {}).get("explanation") or {}
+	keys = [
+		"explanation_scope",
+		"local_num_hops",
+		"local_max_nodes",
+		"local_max_edges",
+		"local_num_nodes_before_cap",
+		"local_num_edges_before_cap",
+		"local_num_edges_before_edge_cap",
+		"local_num_nodes_after_cap",
+		"local_num_edges_after_cap",
+		"local_message_edges",
+		"local_explanation_edges",
+		"hit_max_nodes",
+		"hit_max_edges",
+	]
+	return {key: explanation.get(key) for key in keys if key in explanation}
+
+
 def run_extraction_stage(config, model_bundle, datasets):
 	"""Run extraction (prediction/explanation/embedding/subgraph) for target nodes."""
 	from Extracion import (
@@ -749,6 +921,7 @@ def run_extraction_stage(config, model_bundle, datasets):
 		get_node_embedding_table,
 		get_node_feature_table,
 		get_one_hop_neighbors,
+		compute_node_embedding_cache,
 	)
 
 	num_hops = int(config.get("num_hops", 2))
@@ -794,8 +967,21 @@ def run_extraction_stage(config, model_bundle, datasets):
 	recon_cfg_for_extraction = config.get("reconstruction", {}) or {}
 	explainer_top_k = recon_cfg_for_extraction.get("explainer_top_k", 5)
 	explainer_min_score = recon_cfg_for_extraction.get("explainer_min_score")
+	explanation_cfg = config.get("explanation", {}) or {}
+	explainer_scope = str(explanation_cfg.get("scope", "full") or "full").strip().lower()
+	explainer_local_num_hops = explanation_cfg.get("local_num_hops")
+	if explainer_local_num_hops is None:
+		explainer_local_num_hops = num_hops
+	explainer_max_nodes = explanation_cfg.get("max_nodes")
+	explainer_max_edges = explanation_cfg.get("max_edges")
+	if explainer_scope in {"local", "sampled", "subgraph"}:
+		print(
+			"Local GNNExplainer enabled: "
+			f"num_hops={int(explainer_local_num_hops)}, "
+			f"max_nodes={explainer_max_nodes}, max_edges={explainer_max_edges}"
+		)
 
-	def attach_candidate_context(bundle, data, model):
+	def attach_candidate_context(bundle, data, model, embedding_cache=None):
 		candidate_set = bundle.get("candidate_set") or {}
 		candidate_ids = [int(v) for v in (candidate_set.get("candidates", []) or [])]
 		bundle["candidate_feature_table"] = get_node_feature_table(data, candidate_ids)
@@ -803,7 +989,12 @@ def run_extraction_stage(config, model_bundle, datasets):
 			bundle["candidate_embedding_table"] = {"node_ids": [], "embeddings": [], "embedding_dim": 0}
 			return
 		try:
-			bundle["candidate_embedding_table"] = get_node_embedding_table(model, data, candidate_ids)
+			bundle["candidate_embedding_table"] = get_node_embedding_table(
+				model,
+				data,
+				candidate_ids,
+				embedding_cache=embedding_cache,
+			)
 		except Exception as exc:
 			print(f"Warning: could not compute candidate embeddings for reconstruction prompt: {exc}")
 			bundle["candidate_embedding_table"] = {
@@ -843,6 +1034,18 @@ def run_extraction_stage(config, model_bundle, datasets):
 				datasets[dataset_name] = data
 			target_nodes = target_nodes_by_dataset[dataset_name]
 			for model_name, model in bundle.items():
+				embedding_cache = None
+				try:
+					print(f"Computing reusable node embeddings for {dataset_name}|{model_name}...")
+					embedding_cache = compute_node_embedding_cache(model, data)
+					if embedding_cache is not None:
+						print(
+							f"Cached node embeddings for {dataset_name}|{model_name}: "
+							f"shape={tuple(embedding_cache.shape)} device={embedding_cache.device}"
+						)
+				except Exception as exc:
+					print(f"Warning: could not compute reusable node embeddings for {dataset_name}|{model_name}: {exc}")
+					embedding_cache = None
 				for node_id in target_nodes:
 					if progress_bar is not None:
 						progress_bar.set_postfix_str(f"{model_name}|{dataset_name}|node={node_id}")
@@ -862,6 +1065,12 @@ def run_extraction_stage(config, model_bundle, datasets):
 						include_candidate_set=False,
 						explainer_top_k=explainer_top_k,
 						explainer_min_score=explainer_min_score,
+						explanation_scope=explainer_scope,
+						explanation_num_hops=int(explainer_local_num_hops),
+						explanation_max_nodes=explainer_max_nodes,
+						explanation_max_edges=explainer_max_edges,
+						embedding_cache=embedding_cache,
+						seed=(int(config.get("seed")) + int(node_id)) if config.get("seed") is not None else None,
 					)
 					recon_cfg = config.get("reconstruction", {}) or {}
 					candidate_ratio = recon_cfg.get("candidate_ratio", 4)
@@ -876,7 +1085,7 @@ def run_extraction_stage(config, model_bundle, datasets):
 						max_candidates=max_candidates,
 						seed=seed,
 					)
-					attach_candidate_context(bundle, data, model)
+					attach_candidate_context(bundle, data, model, embedding_cache=embedding_cache)
 					bundle["dataset"] = dataset_name
 					bundle["model"] = model_name
 					records.append(
@@ -891,6 +1100,7 @@ def run_extraction_stage(config, model_bundle, datasets):
 					completed += 1
 					if progress_bar is not None:
 						progress_bar.update(1)
+				del embedding_cache
 	else:
 
 
@@ -955,6 +1165,10 @@ def run_extraction_stage(config, model_bundle, datasets):
 								seed=int(seed) if seed is not None else None,
 								explainer_top_k=explainer_top_k,
 								explainer_min_score=explainer_min_score,
+								explanation_scope=explainer_scope,
+								explanation_num_hops=int(explainer_local_num_hops),
+								explanation_max_nodes=explainer_max_nodes,
+								explanation_max_edges=explainer_max_edges,
 							)
 						)
 
@@ -997,6 +1211,7 @@ def run_extraction_stage(config, model_bundle, datasets):
 	if progress_bar is not None:
 		progress_bar.close()
 
+	_print_local_explainer_cap_summary(records)
 	return records
 
 
@@ -2120,7 +2335,8 @@ def run_evaluation_stage_experiments(config, extraction_records, experiment_outp
 			comparisons = []
 			for llm_name, llm_preds in predictions_by_llm.items():
 				for idx, record in enumerate(extraction_records):
-					prediction_bundle = (record.get("bundle") or {}).get("prediction") or {}
+					bundle = record.get("bundle") or {}
+					prediction_bundle = bundle.get("prediction") or {}
 					gnn_pred = prediction_bundle.get("predicted_class")
 					llm_output = llm_preds[idx] if idx < len(llm_preds) else None
 					llm_pred, llm_raw_response = _split_llm_prediction_output(llm_output)
@@ -2137,6 +2353,7 @@ def run_evaluation_stage_experiments(config, extraction_records, experiment_outp
 						"llm_pred": llm_pred,
 						"prompt": llm_prompt,
 					}
+					row.update(_local_explainer_cap_fields(bundle))
 					if llm_raw_response is not None or llm_raw_output is not None:
 						row["llm_raw_response"] = llm_raw_response if llm_raw_response is not None else llm_raw_output
 					if llm_error is not None:
@@ -2182,6 +2399,7 @@ def run_evaluation_stage_experiments(config, extraction_records, experiment_outp
 							"prompt": llm_prompt,
 							"llm_raw_response": llm_raw_output,
 						}
+						row.update(_local_explainer_cap_fields(bundle))
 						if raw_predicted_neighbors != predicted_neighbors:
 							row["raw_predicted_neighbors"] = raw_predicted_neighbors
 							row["invalid_predicted_neighbors"] = invalid_predicted_neighbors
@@ -2198,6 +2416,7 @@ def run_evaluation_stage_experiments(config, extraction_records, experiment_outp
 							"prompt": llm_prompt,
 							"llm_raw_response": llm_raw_output,
 						}
+						explainer_row.update(_local_explainer_cap_fields(bundle))
 						if raw_predicted_neighbors != predicted_neighbors:
 							explainer_row["raw_predicted_neighbors"] = raw_predicted_neighbors
 							explainer_row["invalid_predicted_neighbors"] = invalid_predicted_neighbors
